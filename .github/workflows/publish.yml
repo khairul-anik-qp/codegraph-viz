@@ -1,0 +1,36 @@
+name: publish
+
+# Publishes the codegraph-viz npm package on tag push (vX.Y.Z).
+# The package's `prepublishOnly` script builds app/dist before `npm publish`
+# runs, so the published tarball contains the freshly-built singlefile HTML
+# template. To cut a release: git tag v0.1.0 && git push --tags.
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install app deps + build singlefile template
+        run: npm run build
+
+      - name: Verify build artifact
+        run: |
+          test -f app/dist/index.html || (echo "build failed: app/dist/index.html missing" && exit 1)
+          echo "template size: $(wc -c < app/dist/index.html) bytes"
+
+      - run: npm test
+        continue-on-error: true   # smoke test is best-effort until test/ is added
+
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

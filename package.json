@@ -1,0 +1,42 @@
+{
+  "name": "codegraph-viz",
+  "version": "0.1.0",
+  "description": "Generate an interactive HTML viewer for a CodeGraph-indexed codebase.",
+  "type": "module",
+  "main": "bin/codegraph-viz.js",
+  "bin": {
+    "codegraph-viz": "bin/codegraph-viz.js"
+  },
+  "files": [
+    "bin",
+    "app/dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "npm --prefix app ci && npm --prefix app run build",
+    "prepublishOnly": "npm run build",
+    "test": "node test/smoke.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "codegraph",
+    "visualization",
+    "call-graph",
+    "code-analysis",
+    "static-analysis"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anomalyco/codegraph-viz.git"
+  },
+  "bugs": {
+    "url": "https://github.com/anomalyco/codegraph-viz/issues"
+  },
+  "dependencies": {
+    "fflate": "^0.8.3"
+  }
+}

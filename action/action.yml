@@ -1,0 +1,68 @@
+# action/
+#
+# This directory is a template for the separate `anomalyco/codegraph-viz-action`
+# GitHub Action repository. Copy `action.yml` to a new repo with the same
+# name; consumers then add it to their workflows with:
+#
+#   - uses: anomalyco/codegraph-viz-action@v1
+#     with:
+#       db-path: .codegraph/codegraph.db
+#       out: dist
+#
+# The action installs the latest `codegraph-viz` npm package and runs the
+# CLI. It does NOT index the codebase — that step must happen beforehand
+# (e.g. via the CodeGraph daemon's CI command), since indexing needs a
+# full tree-sitter parse and is much heavier than viz generation.
+
+name: 'CodeGraph Viz'
+description: 'Generate an interactive HTML viewer for a CodeGraph-indexed codebase.'
+author: 'anomalyco'
+
+inputs:
+  db-path:
+    description: 'Path to codegraph.db, relative to the workspace.'
+    required: false
+    default: '.codegraph/codegraph.db'
+  out:
+    description: 'Output file path. The parent directory is created if needed.'
+    required: false
+    default: '.codegraph/viz/index.html'
+  node-version:
+    description: 'Node.js version to use.'
+    required: false
+    default: '20'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Install sqlite3 (Ubuntu/macOS)
+      shell: bash
+      run: |
+        if command -v sqlite3 >/dev/null 2>&1; then
+          echo "sqlite3 already present: $(sqlite3 --version)"
+        else
+          echo "Installing sqlite3..."
+          sudo apt-get update -qq && sudo apt-get install -yqq sqlite3 || \
+            brew install sqlite3 || \
+            (echo "Could not install sqlite3. Install it manually and re-run." && exit 1)
+        fi
+
+    - name: Install codegraph-viz
+      shell: bash
+      run: npm install -g codegraph-viz
+
+    - name: Generate viz
+      shell: bash
+      run: codegraph-viz --db "${{ inputs.db-path }}" --out "${{ inputs.out }}"
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: codegraph-viz
+        path: ${{ inputs.out }}
+        if-no-files-found: error
