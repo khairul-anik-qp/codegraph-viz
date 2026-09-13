@@ -6,14 +6,14 @@
     DATA, view, isolate, hop, direction, showImports, showCalls, searchQuery,
     flowRoot, flowDirection, flowDepth, flowTrail, flowFeatureFilter,
     symOutAdj, symInAdj, packageFilter, symUsageInAdj,
-    symbolKindFilter, deadCodeSymbols, detailMode,
+    symbolKindFilter, deadCodeSymbols, detailMode, domainDepth,
   } from './stores.js';
   import {
     setIsolate, clearIsolate, openPackage, jumpToFile, jumpToSymbol,
     openFlow, openAllFlows, flowBack, setFlowDirection, setFlowFeatureFilter,
     togglePackageFocus, clearPackageFocus,
   } from './actions.js';
-  import { pkgColor, shortPkg, displayName, featureGroup, isEntryPoint } from './graph.js';
+  import { pkgColor, shortPkg, displayName, featureGroup, isEntryPoint, groupPackagesByDepth } from './graph.js';
 
   const HOPS = [1, 2, 3, 99];
   const DIRS = [
@@ -38,6 +38,9 @@
     }
     return n;
   })();
+
+  // Count of distinct domains at the current domainDepth, for the sidebar nav button.
+  $: domainCount = groupPackagesByDepth(DATA.packages, $domainDepth).size;
 
   // Counts for the Routes / Structure nav buttons, cheap enough to compute
   // on every render (small arrays — hundreds, not thousands, of entries).
@@ -345,6 +348,16 @@
           <span class="swatch" style="background:{indexHealthIssues > 0 ? '#c94f7c' : '#3fa77f'}"></span>
           <span>Index health</span>
           <span class="count">{indexHealthIssues}</span>
+        </button>
+        <button
+          class="legend-item"
+          class:active={$view === 'domains'}
+          title="Business/feature domains grouped by folder depth, with entry points and call-chain previews"
+          on:click={() => view.set($view === 'domains' ? 'packages' : 'domains')}
+        >
+          <span class="swatch" style="background:#5b5ed6"></span>
+          <span>Domains</span>
+          <span class="count">{domainCount}</span>
         </button>
       </div>
     {/if}

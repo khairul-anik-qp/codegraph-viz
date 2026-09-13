@@ -25,6 +25,7 @@
   import StructureView from './lib/StructureView.svelte';
   import DocsView from './lib/DocsView.svelte';
   import IndexHealthView from './lib/IndexHealthView.svelte';
+  import DomainView from './lib/DomainView.svelte';
   import DetailPanel from './lib/DetailPanel.svelte';
   import NodeTooltip from './lib/NodeTooltip.svelte';
   import PathFinderModal from './lib/PathFinderModal.svelte';
@@ -53,6 +54,8 @@
     ? 'Exported-symbol docstring coverage per package, worst first &middot; expand a package to see what\'s undocumented.'
     : $view === 'indexHealth'
     ? 'Whether this export can be trusted right now &mdash; stale files and imports that never resolved.'
+    : $view === 'domains'
+    ? 'Business/feature domains grouped by folder depth &middot; click an entry point to open its full flow, or any step in its preview chain to inspect that symbol.'
     : 'Click a node to make it the new root &middot; scroll to zoom &middot; drag to pan.';
 
   // Whether a keydown event's target is a text input the user is typing into,
@@ -180,6 +183,8 @@
       <DocsView />
     {:else if $view === 'indexHealth'}
       <IndexHealthView />
+    {:else if $view === 'domains'}
+      <DomainView />
     {:else}
       <FlowView />
     {/if}
