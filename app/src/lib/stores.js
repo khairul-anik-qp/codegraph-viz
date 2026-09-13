@@ -114,6 +114,13 @@ export const view = writable('packages'); // 'packages' | 'files' | 'flow' | 'al
 // Index of the package currently open in the files view, or null when no package is open.
 export const currentPkg = writable(null);
 
+// ---------- domain view ----------
+// Folder-depth used to group packages into coarse "domains" (see
+// groupPackagesByDepth in graph.js). Ephemeral — NOT persisted to
+// localStorage, unlike detailMode: this is an exploratory dial re-adjusted
+// per repo/session, not a stable reading preference.
+export const domainDepth = writable(2);
+
 // ---------- flow view ----------
 export const flowRoot = writable(null);        // symId currently rooted
 export const flowDirection = writable('out');  // 'out' = calls (downstream), 'in' = called by (upstream)
