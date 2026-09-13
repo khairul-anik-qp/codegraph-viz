@@ -119,6 +119,10 @@ export const tooltipState = writable(null);
 // symbol in the resulting chain).
 export const pathFinderOpen = writable(false);
 
+// ---------- keyboard shortcuts help modal ----------
+// Whether the keyboard shortcuts help modal is open.
+export const shortcutsHelpOpen = writable(false);
+
 // ---------- package focus ----------
 // null = no restriction (everything). A Set of package indices otherwise —
 // scopes search results, dims non-matching packages in the package view,

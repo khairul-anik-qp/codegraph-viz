@@ -3,7 +3,7 @@
   import { get } from 'svelte/store';
   import {
     view, currentPkg, flowRoot, allFlowsRoot, selectedSymbol, searchQuery,
-    packageFilter, symbolKindFilter, pathFinderOpen,
+    packageFilter, symbolKindFilter, pathFinderOpen, shortcutsHelpOpen,
   } from './lib/stores.js';
   import { openFlow, openAllFlows, jumpToSymbol, goToPackagesView, openPackage } from './lib/actions.js';
   import { goBack } from './lib/hashState.js';
@@ -24,6 +24,7 @@
   import DetailPanel from './lib/DetailPanel.svelte';
   import NodeTooltip from './lib/NodeTooltip.svelte';
   import PathFinderModal from './lib/PathFinderModal.svelte';
+  import KeyboardShortcutsHelp from './lib/KeyboardShortcutsHelp.svelte';
   import { applyHashState, syncHash } from './lib/hashState.js';
 
   $: hint = $view === 'packages'
@@ -73,6 +74,8 @@
       if (key === 'Escape') {
         const active = document.activeElement;
         if (active && isTypingTarget(active)) { active.blur(); return; }
+        if (get(shortcutsHelpOpen)) { shortcutsHelpOpen.set(false); return; }
+        if (get(pathFinderOpen)) { pathFinderOpen.set(false); return; }
         if (get(searchQuery)) { searchQuery.set(''); return; }
         if (symId !== null) { selectedSymbol.set(null); return; }
         view.set('packages');
@@ -89,6 +92,11 @@
       if (key === 'p') {
         ev.preventDefault();
         pathFinderOpen.set(true);
+        return;
+      }
+      if (key === '?') {
+        ev.preventDefault();
+        shortcutsHelpOpen.set(true);
         return;
       }
       if (symId === null) return;
@@ -154,4 +162,5 @@
   <DetailPanel />
   <NodeTooltip />
   <PathFinderModal />
+  <KeyboardShortcutsHelp />
 </div>
