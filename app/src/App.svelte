@@ -3,7 +3,7 @@
   import { get } from 'svelte/store';
   import {
     view, currentPkg, flowRoot, allFlowsRoot, selectedSymbol, searchQuery,
-    packageFilter, symbolKindFilter,
+    packageFilter, symbolKindFilter, pathFinderOpen,
   } from './lib/stores.js';
   import { openFlow, openAllFlows, jumpToSymbol, goToPackagesView, openPackage } from './lib/actions.js';
   import { goBack } from './lib/hashState.js';
@@ -23,6 +23,7 @@
   import IndexHealthView from './lib/IndexHealthView.svelte';
   import DetailPanel from './lib/DetailPanel.svelte';
   import NodeTooltip from './lib/NodeTooltip.svelte';
+  import PathFinderModal from './lib/PathFinderModal.svelte';
   import { applyHashState, syncHash } from './lib/hashState.js';
 
   $: hint = $view === 'packages'
@@ -83,6 +84,11 @@
         ev.preventDefault();
         const searchInput = document.querySelector('input[placeholder*="AddEditOutcomeModal"], input[placeholder*="Filter"]');
         if (searchInput) { searchInput.focus(); searchInput.select(); }
+        return;
+      }
+      if (key === 'p') {
+        ev.preventDefault();
+        pathFinderOpen.set(true);
         return;
       }
       if (symId === null) return;
@@ -147,4 +153,5 @@
   </main>
   <DetailPanel />
   <NodeTooltip />
+  <PathFinderModal />
 </div>

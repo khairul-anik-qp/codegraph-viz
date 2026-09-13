@@ -1,5 +1,5 @@
 <script>
-  import { DATA, view, currentPkg, flowRoot, flowDirection, flowTrail, allFlowsRoot } from './stores.js';
+  import { DATA, view, currentPkg, flowRoot, flowDirection, flowTrail, allFlowsRoot, pathFinderOpen } from './stores.js';
   import { goToPackagesView, flowJumpToTrail, openFlow } from './actions.js';
   import { goBack } from './hashState.js';
   import { shortPkg, displayName } from './graph.js';
@@ -51,6 +51,7 @@
     {/if}
   </div>
   <div class="spacer"></div>
+  <button class="find-path-btn" title="Find path between two symbols (p)" on:click={() => pathFinderOpen.set(true)}>⇄ Find path</button>
   <div class="stats">
     {#if $view === 'packages'}
       <span><b>{DATA.packages.length}</b> packages</span>
@@ -80,4 +81,18 @@
     transition: color 0.1s ease, border-color 0.1s ease;
   }
   .back-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  .find-path-btn {
+    background: var(--surface-2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-family: var(--vscode-font-family, 'Manrope', sans-serif);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-right: 12px;
+  }
+  .find-path-btn:hover { color: var(--accent); border-color: var(--accent); }
 </style>

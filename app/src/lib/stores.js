@@ -112,6 +112,13 @@ export const searchQuery = writable('');
 // (mounted once in App.svelte) no matter which view is showing nodes.
 export const tooltipState = writable(null);
 
+// ---------- path finder modal ----------
+// Whether the Path Finder modal is open. Reset to false on close (backdrop
+// click, Escape, X button — all routed through Modal's `on:close`, which
+// PathFinderModal.close() handles — or automatically after jumping to a
+// symbol in the resulting chain).
+export const pathFinderOpen = writable(false);
+
 // ---------- package focus ----------
 // null = no restriction (everything). A Set of package indices otherwise —
 // scopes search results, dims non-matching packages in the package view,
