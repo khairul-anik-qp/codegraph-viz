@@ -40,6 +40,8 @@ Options:
                   no .gitignore or accidental-commit risk)
   --cwd <path>    Project root to search for .codegraph/ (default: cwd)
   --json <path>   Dump the extracted graph data as JSON, skip HTML generation
+  --diff <ref>    Mark files changed since <ref> (e.g. main, HEAD~5) for the
+                  diff-impact overlay
   --port <n>      serve only: port to listen on (default: 3000)
   --quiet, -q     Suppress progress output (only the final output path on stdout)
   --version, -V   Print version and exit
@@ -60,7 +62,7 @@ Requires the \`sqlite3\` CLI on PATH. Install:
 // Hand-rolled flag parser — zero deps, intentionally minimal. Accepts both
 // `--flag value` and `--flag=value` forms. Positional args are rejected.
 function parseArgs(argv) {
-  const opts = { db: null, out: null, cwd: process.cwd(), json: null, port: null, quiet: false, version: false, help: false };
+  const opts = { db: null, out: null, cwd: process.cwd(), json: null, port: null, diff: null, quiet: false, version: false, help: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--help' || a === '-h') opts.help = true;
@@ -146,7 +148,7 @@ const out = opts.out
 const outDir = path.dirname(out);
 
 const log = (...a) => { if (!opts.quiet) console.error(...a); };
-const data = extractGraph(projectRoot, db, sqliteJson, log);
+const data = extractGraph(projectRoot, db, sqliteJson, log, opts.diff || null);
 
 if (opts.json) {
   const jsonPath = path.resolve(opts.json);

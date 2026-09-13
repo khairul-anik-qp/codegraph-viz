@@ -40,6 +40,10 @@ assert.equal(data.symbolEdges.length, 1);
 assert.deepEqual(data.symbolEdges[0], [0, 1, 1, [1]]);
 assert.equal(data.packages.length, 1); // both files under 'src'
 
+// changedFileIdxs defaults to [] when no gitDiffRef is passed — must not
+// break existing callers that don't know about the diff feature.
+assert.deepEqual(data.changedFileIdxs, []);
+
 const html = buildHtml(data);
 assert.match(html, /<script id="graph-data-b64"/);
 assert.match(html, /__GRAPH_DATA__/);
