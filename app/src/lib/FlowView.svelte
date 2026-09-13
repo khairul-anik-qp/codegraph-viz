@@ -4,6 +4,7 @@
   import { DATA, symOutAdj, symInAdj, flowRoot, flowDirection, flowDepth, flowFeatureFilter, packageFilter, flowTrail, tooltipState } from './stores.js';
   import { flowDrillTo, flowJumpToTrail, openAllFlows } from './actions.js';
   import { buildFlowTree, pkgColor, displayName, featureGroup } from './graph.js';
+  import ExportMenu from './ExportMenu.svelte';
 
   let svgEl;
   let gEl;
@@ -266,9 +267,12 @@
 </script>
 
 {#if root !== null}
-  <button class="all-flows-btn" on:click={() => openAllFlows(root)} title="Enumerate every path through this symbol (callers + callees)">
-    all paths →
-  </button>
+  <div class="flow-toolbar">
+    <ExportMenu {svgEl} filename={DATA.symbols[root][0]} />
+    <button class="all-flows-btn" on:click={() => openAllFlows(root)} title="Enumerate every path through this symbol (callers + callees)">
+      all paths →
+    </button>
+  </div>
 {/if}
 <svg id="flow-svg" bind:this={svgEl}>
   <g bind:this={gEl}></g>
@@ -282,11 +286,16 @@
     width: 100%;
     height: 100%;
   }
-  .all-flows-btn {
+  .flow-toolbar {
     position: absolute;
     top: 12px;
     right: 12px;
     z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .all-flows-btn {
     background: var(--surface);
     color: var(--accent);
     border: 1px solid var(--border);

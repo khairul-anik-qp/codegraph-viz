@@ -99,6 +99,11 @@
         shortcutsHelpOpen.set(true);
         return;
       }
+      if (key === 'e' && get(view) === 'flow') {
+        ev.preventDefault();
+        window.dispatchEvent(new CustomEvent('codegraph:export-flow'));
+        return;
+      }
       if (symId === null) return;
 
       if (key === 'f') { openFlow(symId, 'out'); return; }
