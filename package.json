@@ -18,7 +18,7 @@
     "build": "pnpm --filter ./app run build",
     "build:extension": "pnpm --filter ./extension run build",
     "prepublishOnly": "pnpm run build",
-    "test": "node test/smoke.js"
+    "test": "node test/smoke.js && node test/graph-client-smoke.js"
   },
   "engines": {
     "node": ">=18"

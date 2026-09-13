@@ -682,6 +682,60 @@ export function transitiveReach(symId, symInAdj) {
   return reach;
 }
 
+// BFS shortest path between two arbitrary symbols, walking the call graph as
+// UNDIRECTED (both symOutAdj and symInAdj neighbors) — a user picking two
+// symbols in the Path Finder modal wants "how does A relate to B at all",
+// not "does A call B" specifically. Returns the ordered symId chain
+// (inclusive of both ends), or null if no path exists within the graph.
+export function shortestPath(fromId, toId, symOutAdj, symInAdj) {
+  if (fromId === toId) return [fromId];
+  const prev = new Map([[fromId, null]]);
+  const queue = [fromId];
+  let qi = 0;
+  while (qi < queue.length) {
+    const id = queue[qi++];
+    const neighbors = [
+      ...(symOutAdj.get(id) || []).map(([n]) => n),
+      ...(symInAdj.get(id) || []).map(([n]) => n),
+    ];
+    for (const next of neighbors) {
+      if (prev.has(next)) continue;
+      prev.set(next, id);
+      if (next === toId) {
+        const path = [toId];
+        let cur = toId;
+        while (prev.get(cur) !== null) {
+          cur = prev.get(cur);
+          path.push(cur);
+        }
+        return path.reverse();
+      }
+      queue.push(next);
+    }
+  }
+  return null;
+}
+
+// Every symbol that transitively depends on (transitively calls into) any of
+// `changedSymIds` — walks symInAdj (callers) outward from each seed. Used by
+// the diff/blast-radius overlay: "if these symbols changed, what else could
+// break". Always includes the seeds themselves so the overlay can render
+// "changed" vs "affected" as two subsets of the same set.
+export function blastRadius(changedSymIds, symInAdj) {
+  const visited = new Set(changedSymIds);
+  const stack = [...changedSymIds];
+  while (stack.length) {
+    const id = stack.pop();
+    for (const [caller] of (symInAdj.get(id) || [])) {
+      if (!visited.has(caller)) {
+        visited.add(caller);
+        stack.push(caller);
+      }
+    }
+  }
+  return visited;
+}
+
 // Walk BACKWARD from `symId` through symInAdj and find the entry points
 // (zero-callers exports + framework entry markers) that can reach it.
 // For each, return the actual chain from entry to symId so the UI can
