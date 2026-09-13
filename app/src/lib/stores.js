@@ -53,6 +53,25 @@ function saveNamedFlows(map) {
 export const namedFlows = writable(loadNamedFlows());
 namedFlows.subscribe(saveNamedFlows);
 
+// ---------- detail panel density ----------
+// 'overview' hides advanced/structural fields (decorators, type params,
+// qualified name, raw parsed signature, visibility/static/abstract flags)
+// so a first-time reader isn't confronted with everything at once.
+// 'deepdive' shows all of it. Persisted globally (not per-project) since
+// it's a reading preference, not project data.
+const DETAIL_MODE_KEY = 'codegraph-detail-mode';
+function loadDetailMode() {
+  if (typeof localStorage === 'undefined') return 'overview';
+  try { return localStorage.getItem(DETAIL_MODE_KEY) || 'overview'; }
+  catch { return 'overview'; }
+}
+function saveDetailMode(mode) {
+  if (typeof localStorage === 'undefined') return;
+  try { localStorage.setItem(DETAIL_MODE_KEY, mode); } catch { /* quota */ }
+}
+export const detailMode = writable(loadDetailMode());
+detailMode.subscribe(saveDetailMode);
+
 export function pathHash(path) {
   // Stable identifier for a path — join symIds with a separator that can't
   // appear inside a symId (always non-negative integers). Used as the key

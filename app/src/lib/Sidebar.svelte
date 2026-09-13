@@ -4,7 +4,7 @@
     DATA, view, isolate, hop, direction, showImports, showCalls, searchQuery,
     flowRoot, flowDirection, flowDepth, flowTrail, flowFeatureFilter,
     symOutAdj, symInAdj, packageFilter, symUsageInAdj,
-    symbolKindFilter, deadCodeSymbols,
+    symbolKindFilter, deadCodeSymbols, detailMode,
   } from './stores.js';
   import {
     setIsolate, clearIsolate, openPackage, jumpToFile, jumpToSymbol,
@@ -192,6 +192,14 @@
 </script>
 
 <aside>
+  <div class="panel-title-row detail-mode-row">
+    <span class="section-title">Detail mode</span>
+    <div class="detail-mode-toggle">
+      <button type="button" class:active={$detailMode === 'overview'} on:click={() => detailMode.set('overview')}>Overview</button>
+      <button type="button" class:active={$detailMode === 'deepdive'} on:click={() => detailMode.set('deepdive')}>Deep-dive</button>
+    </div>
+  </div>
+
   <div class="section section-search">
     <div class="section-head">
       <button type="button" class="section-toggle" on:click={() => toggleSection('search')} aria-expanded={$isOpen('search')}>
@@ -635,6 +643,39 @@
     gap: 8px;
     margin-bottom: 4px;
   }
+  /* The detail-mode toggle sits above every other section regardless of
+     `view`, so it needs the same "no top border" treatment `.section`
+     gives its own first child — but it isn't a `.section` itself, which
+     would otherwise make the *next* div (search) lose the first-of-type
+     match. This override re-applies that reset to whichever `.section`
+     immediately follows it. */
+  .detail-mode-row {
+    margin-bottom: 10px;
+  }
+  .detail-mode-row + .section {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+  }
+  .detail-mode-toggle {
+    display: flex;
+    gap: 2px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px;
+  }
+  .detail-mode-toggle button {
+    flex: 1;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 11px;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .detail-mode-toggle button.active { background: var(--surface); color: var(--text); }
   .flow-link {
     font-size: 10.5px;
     font-weight: 700;

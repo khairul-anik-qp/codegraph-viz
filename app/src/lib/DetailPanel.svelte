@@ -1,7 +1,7 @@
 <script>
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
-  import { DATA, selectedFile, selectedSymbol, fileInAdj, fileOutAdj, symInAdj, symOutAdj, symUsageInAdj } from './stores.js';
+  import { DATA, selectedFile, selectedSymbol, fileInAdj, fileOutAdj, symInAdj, symOutAdj, symUsageInAdj, detailMode } from './stores.js';
   import { jumpToFile, jumpToSymbol, selectSymbol, backToFileOverview, openFlow } from './actions.js';
   import { pkgColor, shortPkg, displayName, complexity, findRelatedTests, transitiveReach, parseSignature, parseTypeBody } from './graph.js';
   import { highlightLine } from './highlight.js';
@@ -115,7 +115,7 @@
         <span class="dead-pill" title="No callers and no references/extends/implements/instantiates found — likely dead code">⚠ dead</span>
       {/if}
     </h2>
-    {#if qualifiedName}
+    {#if qualifiedName && $detailMode === 'deepdive'}
       <div class="qualified-name mono" title="Fully qualified name">{qualifiedName}</div>
     {/if}
     <div class="path-pkg">
@@ -130,13 +130,13 @@
       {/if}
     </div>
 
-    {#if decorators.length > 0}
+    {#if decorators.length > 0 && $detailMode === 'deepdive'}
       <div class="decorator-row mono">
         {#each decorators as d}<span class="decorator-chip">@{d}</span>{/each}
       </div>
     {/if}
 
-    {#if visibility || isAsync || isStatic || isAbstract || realReturnType || typeParameters.length > 0}
+    {#if $detailMode === 'deepdive' && (visibility || isAsync || isStatic || isAbstract || realReturnType || typeParameters.length > 0)}
       <div class="flag-row">
         {#if visibility}<span class="flag-badge mono">{visibility}</span>{/if}
         {#if isStatic}<span class="flag-badge mono">static</span>{/if}
@@ -146,7 +146,7 @@
         {#if realReturnType}<span class="flag-badge mono returns" title="Return type">→ {realReturnType}</span>{/if}
       </div>
     {/if}
-    {#if realSignature && realSignature !== symbol[0]}
+    {#if $detailMode === 'deepdive' && realSignature && realSignature !== symbol[0]}
       <div class="real-sig mono" title="Signature as parsed by CodeGraph">{realSignature}</div>
     {/if}
 
