@@ -18,6 +18,11 @@ Read these in order if you're picking this up cold:
    are, including two real bugs hit and fixed during development that are
    easy to reintroduce if you don't know the history.
 
+For end users annotating their own codebase to get better Domain View
+grouping, see **[../../docs/domain-tagging.md](../../docs/domain-tagging.md)**
+— the `@domain`/`@flow` docstring tag format, plus an LLM prompt to auto-tag
+a codebase.
+
 ## Where the actual tool lives
 
 - `~/.codegraph-viz-tool/generate.mjs` — the CLI entry point. Exports fresh

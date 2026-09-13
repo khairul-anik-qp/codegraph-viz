@@ -24,7 +24,12 @@ async function getGraphLib(): Promise<GraphLib> {
   return graphLib as GraphLib;
 }
 
-/** Registers the extension's commands with VS Code on activation. */
+/**
+ * Registers the extension's commands with VS Code on activation.
+ *
+ * @domain VS Code Extension
+ * @flow Activation
+ */
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('codegraph.openViewer', openViewer)
@@ -72,5 +77,10 @@ async function openViewer() {
   panel.webview.html = html;
 }
 
-/** No-op lifecycle hook required by VS Code's extension API. */
+/**
+ * No-op lifecycle hook required by VS Code's extension API.
+ *
+ * @domain VS Code Extension
+ * @flow Deactivation
+ */
 export function deactivate() {}

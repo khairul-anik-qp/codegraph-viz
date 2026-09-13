@@ -102,6 +102,15 @@ codegraph-viz --quiet
 
 > **Note**: this action does not index the codebase. Run your CodeGraph indexing step first (it needs a full tree-sitter parse and is much heavier than viz generation).
 
+## Domain View: grouping by business domain, not folder
+
+Domain View groups packages by folder-depth by default. You can override
+this per-symbol by tagging entry-point docstrings with `@domain <Name>`
+(and optionally `@flow <Name>`) — no re-index config needed, it reads the
+docstring text already exported. See
+[docs/domain-tagging.md](docs/domain-tagging.md) for the exact format and a
+ready-to-paste LLM prompt that proposes tags across your codebase for you.
+
 ## Deploying the output
 
 The generated `index.html` is fully self-contained — no external requests, no build step. Drop it on any static host:

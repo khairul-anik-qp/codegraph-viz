@@ -62,10 +62,6 @@
     return n;
   })();
 
-  $: staleFileCount = DATA.files.reduce((n, f) => n + (f[4] != null && f[5] != null && f[4] > f[5] ? 1 : 0), 0);
-  $: unresolvedImportCount = (DATA.unresolvedImports || []).length;
-  $: indexHealthIssues = staleFileCount + unresolvedImportCount;
-
   // Pre-collect every distinct symbol-kind present in DATA so the filter
   // chips below show only kinds that actually exist in this codebase.
   $: availableKinds = (() => {
@@ -338,16 +334,6 @@
           <span class="swatch" style="background:#7d8590"></span>
           <span>Docs coverage</span>
           <span class="count">{undocumentedCount}</span>
-        </button>
-        <button
-          class="legend-item"
-          class:active={$view === 'indexHealth'}
-          title="Stale files and unresolved internal imports — is this export trustworthy?"
-          on:click={() => toggleListView('indexHealth')}
-        >
-          <span class="swatch" style="background:{indexHealthIssues > 0 ? '#c94f7c' : '#3fa77f'}"></span>
-          <span>Index health</span>
-          <span class="count">{indexHealthIssues}</span>
         </button>
         <button
           class="legend-item"

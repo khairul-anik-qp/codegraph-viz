@@ -5,7 +5,7 @@
   // new export-time data. See docs/superpowers/specs/2026-09-13-domain-view-design.md.
   import { DATA, symOutAdj, symInAdj, domainDepth, symbolKindFilter } from './stores.js';
   import { selectSymbol, openFlow } from './actions.js';
-  import { groupPackagesByDepth, previewChain, isEntryPoint, pkgColor, displayName } from './graph.js';
+  import { groupPackagesByDepth, previewChain, isEntryPoint, pkgColor, displayName, parseDocTags } from './graph.js';
 
   const MAX_HOPS = 4;
 
@@ -18,9 +18,26 @@
   // stepper's '+' button disables here instead of clicking into no-op territory.
   $: maxRealDepth = DATA.packages.reduce((m, [name]) => Math.max(m, name.split('/').length), 1);
 
-  $: domains = [...groupPackagesByDepth(DATA.packages, $domainDepth).entries()]
-    .map(([name, pkgIdxs]) => ({ name, pkgIdxs, pkgCount: pkgIdxs.length }))
+  $: structuralDomains = [...groupPackagesByDepth(DATA.packages, $domainDepth).entries()]
+    .map(([name, pkgIdxs]) => ({ name, tagged: false, pkgIdxs, pkgCount: pkgIdxs.length }))
     .sort((a, b) => a.name.localeCompare(b.name));
+
+  // Entry points that declare an @domain tag are grouped by that tag instead
+  // of folder depth — see parseDocTags in graph.js. Everything else keeps
+  // falling into the folder-depth groups above, so tagging is opt-in.
+  $: taggedDomains = (() => {
+    const groups = new Map();
+    for (const e of allEntryPoints) {
+      if (!e.tagDomain) continue;
+      if (!groups.has(e.tagDomain)) groups.set(e.tagDomain, { name: e.tagDomain, tagged: true, pkgIdxs: new Set(), entryCount: 0 });
+      const g = groups.get(e.tagDomain);
+      g.pkgIdxs.add(e.pkgIdx);
+      g.entryCount++;
+    }
+    return [...groups.values()].sort((a, b) => a.name.localeCompare(b.name));
+  })();
+
+  $: domains = [...taggedDomains, ...structuralDomains];
 
   // Keep a valid selection across depth changes: fall back to the first
   // domain if the previously selected one no longer exists, or pick the
@@ -42,6 +59,7 @@
       const f = DATA.files[s[4]];
       const inDeg = (symInAdj.get(i) || []).length;
       if (!isEntryPoint(s, s[5] || '', inDeg)) continue;
+      const { domain: tagDomain, flow: tagFlow, clean: doc } = parseDocTags(s[6] || '');
       out.push({
         symId: i,
         name: s[0],
@@ -49,7 +67,9 @@
         filePath: f[0],
         pkgIdx: f[1],
         startLine: s[2],
-        doc: s[6] || '',
+        doc,
+        tagDomain,
+        tagFlow,
         chain: previewChain(i, symOutAdj, MAX_HOPS),
       });
     }
@@ -58,8 +78,14 @@
 
   $: entryPoints = currentDomain
     ? (() => {
+        if (currentDomain.tagged) {
+          return allEntryPoints.filter((e) => e.tagDomain === currentDomain.name).sort((a, b) => a.name.localeCompare(b.name));
+        }
+        // Structural (folder-depth) domains only show entries that aren't
+        // already claimed by a tagged domain above, so a tagged entry point
+        // doesn't get listed twice.
         const pkgSet = new Set(currentDomain.pkgIdxs);
-        return allEntryPoints.filter((e) => pkgSet.has(e.pkgIdx)).sort((a, b) => a.name.localeCompare(b.name));
+        return allEntryPoints.filter((e) => !e.tagDomain && pkgSet.has(e.pkgIdx)).sort((a, b) => a.name.localeCompare(b.name));
       })()
     : [];
 
@@ -115,7 +141,17 @@
       </div>
     </div>
     <div class="rail-list">
-      {#each domains as d (d.name)}
+      {#if taggedDomains.length}
+        <div class="rail-group-label">@domain tagged</div>
+        {#each taggedDomains as d (d.name)}
+          <button class="rail-item" class:active={selectedDomain === d.name} on:click={() => selectDomain(d.name)}>
+            <span class="rail-name mono">{d.name}</span>
+            <span class="rail-count">{d.entryCount} entry{d.entryCount === 1 ? '' : ' pts'}</span>
+          </button>
+        {/each}
+        <div class="rail-group-label">By folder depth</div>
+      {/if}
+      {#each structuralDomains as d (d.name)}
         <button class="rail-item" class:active={selectedDomain === d.name} on:click={() => selectDomain(d.name)}>
           <span class="rail-name mono">{d.name}</span>
           <span class="rail-count">{d.pkgCount} pkg{d.pkgCount === 1 ? '' : 's'}</span>
@@ -165,6 +201,12 @@
                 <span class="entry-file mono muted">{displayName(e.filePath)}<span class="line">:{e.startLine}</span></span>
               </button>
               {#if e.doc}<p class="entry-doc">{e.doc}</p>{/if}
+              {#if e.tagDomain || e.tagFlow}
+                <div class="tag-row">
+                  {#if e.tagDomain}<span class="tagchip">@domain {e.tagDomain}</span>{/if}
+                  {#if e.tagFlow}<span class="tagchip flow">@flow {e.tagFlow}</span>{/if}
+                </div>
+              {/if}
               <div class="chain">
                 {#each e.chain as symId, i (symId)}
                   {@const m = symbolMeta(symId)}
@@ -226,6 +268,11 @@
   .depth-val { font-size: 10.5px; color: var(--muted); font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); }
 
   .rail-list { overflow-y: auto; flex: 1; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .rail-group-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--muted); padding: 8px 6px 2px;
+  }
+  .rail-group-label:first-child { padding-top: 2px; }
   .rail-item {
     display: flex; align-items: center; justify-content: space-between; gap: 8px;
     background: none; border: 1px solid transparent; border-radius: 6px;
@@ -269,6 +316,12 @@
   .entry-file { font-size: 11px; margin-left: auto; }
   .entry-file .line { color: var(--accent); }
   .entry-doc { margin: 0 0 8px 0; font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+  .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: -2px 0 8px; }
+  .tagchip {
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); font-size: 10px; font-weight: 700;
+    padding: 2px 7px; border-radius: 10px; background: var(--accent-soft); color: var(--accent);
+  }
+  .tagchip.flow { background: color-mix(in srgb, #3fa77f 20%, var(--surface)); color: #3fa77f; }
 
   .chain { display: flex; flex-direction: column; }
   .chain-step {

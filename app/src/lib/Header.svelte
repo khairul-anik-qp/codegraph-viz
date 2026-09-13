@@ -2,7 +2,7 @@
   // Top app bar: title, back button, breadcrumb trail for the active view, and
   // global stats/actions (diff toggle, path finder).
   import { DATA, view, currentPkg, flowRoot, flowDirection, flowTrail, allFlowsRoot, pathFinderOpen, themeMode } from './stores.js';
-  import { goToPackagesView, flowJumpToTrail, openFlow } from './actions.js';
+  import { goToPackagesView, flowJumpToTrail, openFlow, toggleListView } from './actions.js';
   import { goBack } from './hashState.js';
   import { shortPkg, displayName } from './graph.js';
   import DiffToggle from './DiffToggle.svelte';
@@ -10,6 +10,12 @@
   $: files = DATA.files;
   $: currentPackageFileCount = $view === 'files' ? files.reduce((n, f) => f[1] === $currentPkg ? n + 1 : n, 0) : 0;
   $: generatedLabel = DATA.generatedAt ? new Date(DATA.generatedAt).toLocaleString() : null;
+
+  // Stale files / unresolved imports — surfaced only as a banner when there's
+  // actually something wrong, instead of a permanent always-zero nav row.
+  $: staleFileCount = DATA.files.reduce((n, f) => n + (f[4] != null && f[5] != null && f[4] > f[5] ? 1 : 0), 0);
+  $: unresolvedImportCount = (DATA.unresolvedImports || []).length;
+  $: indexHealthIssues = staleFileCount + unresolvedImportCount;
   // Only show Back on views that the user navigated *into* — 'packages' is
   // the home view, so there's nothing meaningful to go back to.
   $: showBack = $view !== 'packages';
@@ -59,6 +65,15 @@
     {/if}
   </div>
   <div class="spacer"></div>
+  {#if indexHealthIssues > 0}
+    <button
+      class="health-banner"
+      title="Stale files and unresolved internal imports — is this export trustworthy?"
+      on:click={() => toggleListView('indexHealth')}
+    >
+      ⚠ {indexHealthIssues} index issue{indexHealthIssues === 1 ? '' : 's'}
+    </button>
+  {/if}
   <DiffToggle />
   <button class="theme-btn" title="{THEME_LABEL[$themeMode]} (click to cycle)" on:click={cycleTheme}>{THEME_ICON[$themeMode]}</button>
   <button class="find-path-btn" title="Find path between two symbols (p)" on:click={() => pathFinderOpen.set(true)}>⇄ Find path</button>
@@ -91,6 +106,20 @@
     transition: color 0.1s ease, border-color 0.1s ease;
   }
   .back-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  .health-banner {
+    background: color-mix(in srgb, var(--danger) 16%, var(--surface));
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-family: var(--vscode-font-family, 'Manrope', sans-serif);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-right: 12px;
+  }
+  .health-banner:hover { background: color-mix(in srgb, var(--danger) 28%, var(--surface)); }
 
   .theme-btn {
     background: var(--surface-2);

@@ -109,6 +109,29 @@ export function groupPackagesByDepth(packages, depth) {
   return groups;
 }
 
+// Recognizes an `@domain <Name>` / `@flow <Name>` tag on its own line inside a
+// docstring — the convention entry points use to declare their business
+// domain/flow directly instead of relying on folder-depth grouping alone.
+// Matches with or without a leading JSDoc `*`, case-insensitive on the tag.
+const DOC_TAG_RE = /^\s*\*?\s*@(domain|flow)\b[:\s]+(.+?)\s*$/i;
+
+// Pulls @domain/@flow tags out of a docstring and returns the remaining text
+// with those lines removed, so a tagged entry point's doc display doesn't
+// repeat the tag as prose. Untagged docstrings pass through unchanged via
+// `clean`; `domain`/`flow` are null when absent.
+export function parseDocTags(doc) {
+  if (!doc) return { domain: null, flow: null, clean: '' };
+  let domain = null, flow = null;
+  const kept = [];
+  for (const line of doc.split('\n')) {
+    const m = line.match(DOC_TAG_RE);
+    if (!m) { kept.push(line); continue; }
+    if (m[1].toLowerCase() === 'domain') domain = m[2].trim();
+    else flow = m[2].trim();
+  }
+  return { domain, flow, clean: kept.join('\n').trim() };
+}
+
 const FLOW_MAX_CHILDREN = 12;
 
 // Builds a single-flow tree rooted at symId, walking `adjacency` (symOutAdj
