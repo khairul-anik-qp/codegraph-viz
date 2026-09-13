@@ -1,4 +1,6 @@
 <script>
+  // Hover tooltip for a graph node: shows the symbol's kind, name, complexity,
+  // caller/callee counts, doc summary, and file location.
   import { DATA, tooltipState, symInAdj, symOutAdj } from './stores.js';
   import { complexity, displayName } from './graph.js';
 

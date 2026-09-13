@@ -1,4 +1,7 @@
 <script>
+  // Root component: wires the global layout (header/sidebar/main/detail panel),
+  // routes between the view components based on the `view` store, and owns the
+  // app-wide keyboard shortcut handling.
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
   import {
@@ -52,6 +55,8 @@
     ? 'Whether this export can be trusted right now &mdash; stale files and imports that never resolved.'
     : 'Click a node to make it the new root &middot; scroll to zoom &middot; drag to pan.';
 
+  // Whether a keydown event's target is a text input the user is typing into,
+  // so global shortcuts can be suppressed while it's focused.
   function isTypingTarget(t) {
     if (!t) return false;
     const tag = t.tagName;
@@ -62,6 +67,8 @@
     applyHashState();
     const cleanup = [];
 
+    // Global keyboard shortcut dispatcher: Escape/close-modal precedence,
+    // then single-key shortcuts (/, p, ?, e, d, f, a) when not typing.
     const handler = (ev) => {
       if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
 
@@ -125,6 +132,8 @@
     // 'b' for back — separate listener so it works even with no symbol
     // selected. Keep outside the main handler's `if (symId === null) return;`
     // guard. 'b' is the same key Alt+← maps to in browsers, by convention.
+    // Standalone 'b' (back) shortcut, kept independent of `handler` so it
+    // works even when no symbol is selected.
     const backHandler = (ev) => {
       if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
       if (isTypingTarget(ev.target)) return;

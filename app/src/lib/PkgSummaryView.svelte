@@ -1,4 +1,5 @@
 <script>
+  // Per-package rollup view: file/symbol counts, languages, avg complexity, and top hub symbols.
   import { DATA, packageFilter, symInAdj } from './stores.js';
   import { jumpToFile, jumpToSymbol } from './actions.js';
   import { pkgColor, displayName, packageSummaries } from './graph.js';

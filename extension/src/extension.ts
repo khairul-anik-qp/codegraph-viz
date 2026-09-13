@@ -18,17 +18,20 @@ interface GraphLib {
 }
 const GRAPH_LIB_PATH = '../../lib/graph.mjs';
 let graphLib: GraphLib | undefined;
+/** Lazily loads and caches the shared graph-extraction/HTML-building library from the CLI package. */
 async function getGraphLib(): Promise<GraphLib> {
   if (!graphLib) graphLib = await import(GRAPH_LIB_PATH);
   return graphLib as GraphLib;
 }
 
+/** Registers the extension's commands with VS Code on activation. */
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('codegraph.openViewer', openViewer)
   );
 }
 
+/** Builds the call-graph HTML for the current workspace and displays it in a webview panel. */
 async function openViewer() {
   // v1: first workspace folder only. Multi-root workspaces are a known
   // limitation, not handled here (YAGNI until it's actually needed).
@@ -69,4 +72,5 @@ async function openViewer() {
   panel.webview.html = html;
 }
 
+/** No-op lifecycle hook required by VS Code's extension API. */
 export function deactivate() {}

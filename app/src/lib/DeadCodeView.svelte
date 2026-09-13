@@ -1,4 +1,5 @@
 <script>
+  // Lists symbols that are never called and never referenced/extended/instantiated, ranked by severity.
   import { DATA, deadCodeSymbols, symbolKindFilter, packageFilter } from "./stores.js";
   import { jumpToSymbol } from "./actions.js";
   import { pkgColor, displayName } from "./graph.js";
@@ -53,6 +54,7 @@
   $: definiteCount = filteredDead.filter((d) => d.severity === 2).length;
   $: likelyCount = filteredDead.filter((d) => d.severity === 1).length;
 
+  // Toggles sort column, flipping direction if the same column is clicked again.
   function setSort(key) {
     if (sortKey === key) sortDir = -sortDir;
     else {

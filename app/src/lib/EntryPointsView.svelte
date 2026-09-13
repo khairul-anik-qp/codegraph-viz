@@ -1,4 +1,5 @@
 <script>
+  // Lists candidate entry points: exported symbols with no internal callers, or framework entry markers.
   import { DATA, symInAdj, symbolKindFilter, packageFilter } from './stores.js';
   import { jumpToSymbol, openFlow, openAllFlows } from './actions.js';
   import { pkgColor, displayName, isEntryPoint, complexity } from './graph.js';

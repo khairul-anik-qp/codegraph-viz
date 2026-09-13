@@ -1,4 +1,5 @@
 <script>
+  // Ranks symbols by caller count to surface the codebase's most load-bearing "hub" functions.
   import { DATA, symInAdj, symOutAdj, symbolKindFilter, packageFilter } from './stores.js';
   import { jumpToSymbol, openFlow, openAllFlows } from './actions.js';
   import { pkgColor, displayName, complexity, transitiveReach } from './graph.js';

@@ -11,6 +11,7 @@
 
   $: ins = $inspectedPath;
 
+  // Closes the inspector, returning to the all-flows path list.
   function exitInspector() {
     inspectedPath.set(null);
   }

@@ -1,12 +1,15 @@
 import { writable, derived, get } from 'svelte/store';
 import { loadGraphData, buildAdjacency, findDeadCode, findCycles, blastRadius } from './graph.js';
 
+// The full exported graph for the currently viewed project — the single source of truth every store below derives from.
 export const DATA = loadGraphData();
 
+// File-level call/import graph, used to drive the package-canvas visualization.
 const fileAdj = buildAdjacency(DATA.fileEdges);
 export const fileOutAdj = fileAdj.out;
 export const fileInAdj = fileAdj.inn;
 
+// Package-level aggregate graph, used to drive the top-level packages view.
 const pkgAdj = buildAdjacency(DATA.packageEdges);
 export const pkgOutAdj = pkgAdj.out;
 export const pkgInAdj = pkgAdj.inn;
@@ -60,24 +63,29 @@ namedFlows.subscribe(saveNamedFlows);
 // 'deepdive' shows all of it. Persisted globally (not per-project) since
 // it's a reading preference, not project data.
 const DETAIL_MODE_KEY = 'codegraph-detail-mode';
+/** Reads the persisted detail-panel density preference, defaulting to 'overview' when unset or unavailable. */
 function loadDetailMode() {
   if (typeof localStorage === 'undefined') return 'overview';
   try { return localStorage.getItem(DETAIL_MODE_KEY) || 'overview'; }
   catch { return 'overview'; }
 }
+/** Persists the detail-panel density preference so it survives page reloads. */
 function saveDetailMode(mode) {
   if (typeof localStorage === 'undefined') return;
   try { localStorage.setItem(DETAIL_MODE_KEY, mode); } catch { /* quota */ }
 }
+// Current detail-panel density ('overview' | 'deepdive'); reset only by the user toggling it, persisted across reloads.
 export const detailMode = writable(loadDetailMode());
 detailMode.subscribe(saveDetailMode);
 
+/** Derives a stable string key identifying a specific call-graph path, for use in named-flow storage and lookup. */
 export function pathHash(path) {
   // Stable identifier for a path — join symIds with a separator that can't
   // appear inside a symId (always non-negative integers). Used as the key
   // component in namedFlows and as a key for the inspector state.
   return path.join('-');
 }
+/** Sets or clears the user-given label for a specific flow path, persisting it to the named-flows store. */
 export function setFlowName(rootId, path, name) {
   const key = `${rootId}:${pathHash(path)}`;
   namedFlows.update(m => {
@@ -87,6 +95,7 @@ export function setFlowName(rootId, path, name) {
     return next;
   });
 }
+/** Looks up the user-given label for a specific flow path, or '' if it hasn't been named. */
 export function getFlowName(rootId, path) {
   const key = `${rootId}:${pathHash(path)}`;
   return get(namedFlows)[key] || '';
@@ -102,6 +111,7 @@ export const inspectedPath = writable(null); // { rootId, dir, path, name } | nu
 
 // ---------- navigation ----------
 export const view = writable('packages'); // 'packages' | 'files' | 'flow' | 'allFlows'
+// Index of the package currently open in the files view, or null when no package is open.
 export const currentPkg = writable(null);
 
 // ---------- flow view ----------
@@ -113,16 +123,22 @@ export const flowFeatureFilter = writable(null); // Features/<name> to isolate a
 
 // ---------- isolate mode ----------
 export const isolate = writable(null); // { type: 'pkg'|'file', idx, name, visible: Set }
+// Maximum hop distance to expand when computing isolate-mode visibility.
 export const hop = writable(99);
+// Which edge direction(s) isolate mode expands along: 'out' | 'in' | 'both'.
 export const direction = writable('both');
 
 // ---------- edge filters ----------
+// Whether import edges are drawn on the canvas views.
 export const showImports = writable(true);
+// Whether call edges are drawn on the canvas views.
 export const showCalls = writable(true);
 
 // ---------- selection / search ----------
+// Index of the file currently selected/open in the detail panel, or null.
 export const selectedFile = writable(null);
 export const selectedSymbol = writable(null); // global symbol id, or null for file-overview
+// Current text typed into the sidebar search box.
 export const searchQuery = writable('');
 
 // ---------- hover tooltip ----------
@@ -171,13 +187,16 @@ export const symbolKindFilter = writable(null);
 // unexported+no-callers = "definitely dead"). The list is static since the
 // DATA never changes after export.
 export const deadCodeSymbols = writable([]);
+// Call-cycle groups (Tarjan SCCs) over the symbol graph, computed once at startup for cycle-highlighting in flow views.
 export const cycleGroups = writable({ sccs: [], map: new Map() });
 
+/** Derives the header breadcrumb trail from the current view and open package. */
 export const breadcrumb = derived([view, currentPkg], ([$view, $currentPkg]) => {
   if ($view === 'packages') return ['Packages'];
   return ['Packages', DATA.packages[$currentPkg]?.[0] ?? ''];
 });
 
+/** Exits isolate mode, restoring the full graph view. */
 export function clearIsolate() {
   isolate.set(null);
 }

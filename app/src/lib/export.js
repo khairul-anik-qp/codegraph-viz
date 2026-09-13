@@ -7,6 +7,7 @@
 // exported file renders correctly outside the page's own stylesheet context.
 const CSS_VARS = ['--accent', '--accent-soft', '--surface', '--border', '--text', '--muted', '--calls'];
 
+/** Reads the current computed values of the theme's CSS custom properties off `svgEl`. */
 function resolveCssVars(svgEl) {
   const computed = getComputedStyle(svgEl);
   const map = {};

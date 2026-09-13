@@ -1,4 +1,5 @@
 <script>
+  // Shows per-package docstring coverage for exported symbols and lists what's undocumented.
   import { DATA } from './stores.js';
   import { jumpToSymbol } from './actions.js';
   import { pkgColor, displayName } from './graph.js';
@@ -48,6 +49,7 @@
   $: totalDocumented = perPkg.reduce((n, p) => n + p.documented, 0);
   $: overallPct = totalDocumentable > 0 ? Math.round((totalDocumented / totalDocumentable) * 100) : 0;
 
+  // Expands or collapses the undocumented-symbols list for a package.
   function toggle(pkgIdx) {
     if (expanded.has(pkgIdx)) expanded.delete(pkgIdx);
     else expanded.add(pkgIdx);

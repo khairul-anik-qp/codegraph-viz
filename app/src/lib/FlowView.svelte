@@ -1,4 +1,5 @@
 <script>
+  // Single-symbol D3 tree view: renders the call graph rooted at one symbol as a zoomable, drillable tree with a ghost trail of navigation history.
   import { onMount, onDestroy } from 'svelte';
   import * as d3 from 'd3';
   import { DATA, symOutAdj, symInAdj, flowRoot, flowDirection, flowDepth, flowFeatureFilter, packageFilter, flowTrail, tooltipState, diffOverlayOn, changedSymIds, blastRadiusSymIds } from './stores.js';
@@ -48,6 +49,7 @@
 
   $: if (treeData && gEl && zoomBehavior) drawTree(treeData, $diffOverlayOn);
 
+  // Renders the call-graph tree as SVG nodes/edges via D3, applying diff-overlay coloring when active.
   function drawTree(data, overlayOn) {
     const hierarchy = d3.hierarchy(data, d => d.children);
     const layoutFn = d3.tree().nodeSize([NODE_H + V_GAP, NODE_W + H_GAP]);
@@ -221,6 +223,7 @@
     }
   }
 
+  // Draws one dashed "ghost" chip (ancestor or sibling) in the nav-history strip.
   function drawGhostNode(parent, x, y, name, kind, onClick) {
     const g = parent.append('g')
       .attr('class', 'ghost')
@@ -246,6 +249,7 @@
     g.on('click', (ev) => { ev.stopPropagation(); onClick(); });
   }
 
+  // Shrinks an SVG text node's content with an ellipsis until it fits within maxWidth.
   function truncateText(node, maxWidth) {
     let text = d3.select(node);
     let str = text.text();

@@ -36,12 +36,14 @@ const LANG_ALIAS = {
   bash: 'bash', shell: 'bash', sh: 'bash',
 };
 
+/** Maps a CodeGraph `files.language` value to its registered highlight.js language name, if supported. */
 export function hljsLang(language) {
   return LANG_ALIAS[language] || null;
 }
 
 const ESCAPE_RE = /[&<>"']/g;
 const ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+/** Escapes HTML-sensitive characters so raw text can be safely rendered as innerHTML. */
 function escapeHtml(s) {
   return s.replace(ESCAPE_RE, (c) => ESCAPE_MAP[c]);
 }

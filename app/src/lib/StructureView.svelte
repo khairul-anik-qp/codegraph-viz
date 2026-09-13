@@ -1,4 +1,5 @@
 <script>
+  // View of structural relationships the call graph omits: class inheritance and object construction sites.
   import { DATA, symUsageInAdj } from './stores.js';
   import { jumpToSymbol } from './actions.js';
   import { pkgColor, displayName, classHierarchy, topInstantiated } from './graph.js';
@@ -21,6 +22,7 @@
     return constructs.filter(g => g.name.toLowerCase().includes(q) || g.sites.some(s => s.name.toLowerCase().includes(q)));
   })();
 
+  // Looks up which package a symbol belongs to via its declaring file.
   function pkgOf(symId) {
     return DATA.files[DATA.symbols[symId][4]][1];
   }

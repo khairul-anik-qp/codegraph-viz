@@ -1,4 +1,5 @@
 <script>
+  // Small dropdown button that exports the current flow diagram as PNG or SVG.
   import { svgToSvgString, svgToPngDataUrl } from './export.js';
 
   export let svgEl = null;
@@ -6,6 +7,7 @@
 
   let openMenu = false;
 
+  // Triggers a browser download for the given data/blob URL.
   function download(href, ext) {
     const a = document.createElement('a');
     a.href = href;
@@ -13,6 +15,7 @@
     a.click();
   }
 
+  // Renders the SVG to a PNG data URL and downloads it.
   async function exportPng() {
     if (!svgEl) return;
     const url = await svgToPngDataUrl(svgEl, 2);
@@ -20,6 +23,7 @@
     openMenu = false;
   }
 
+  // Serializes the SVG element and downloads it as an .svg file.
   function exportSvg() {
     if (!svgEl) return;
     const svgString = svgToSvgString(svgEl);

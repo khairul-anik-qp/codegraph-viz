@@ -1,11 +1,14 @@
 // Pure graph helpers — framework-agnostic, shared by PackageView and FileView.
 
+/** Fixed color palette used to distinguish packages consistently across views. */
 export const PKG_COLORS = ['#5b5ed6', '#d97b3f', '#3fa77f', '#c94f7c', '#4a90d9', '#a367c9', '#c9a13f', '#7d8590'];
 
+/** Picks a stable display color for a package by index, cycling through the palette. */
 export function pkgColor(i) {
   return PKG_COLORS[i % PKG_COLORS.length];
 }
 
+/** Shortens a package name to its final path segment for compact display. */
 export function shortPkg(name) {
   return name.split('/').pop();
 }
@@ -69,6 +72,7 @@ export function featureGroup(filePath) {
  *     non-import unresolved refs (test-framework globals etc), which
  *     dominate CodeGraph's raw unresolved_refs table and aren't actionable.
  */
+/** Builds outgoing and incoming adjacency maps from a flat edge list for fast graph traversal. */
 export function buildAdjacency(edges) {
   const out = new Map();
   const inn = new Map();
@@ -83,6 +87,7 @@ export function buildAdjacency(edges) {
   return { out, inn };
 }
 
+/** Lists the indices of every file belonging to a given package. */
 export function filesInPkg(files, pkgIdx) {
   const arr = [];
   files.forEach((f, i) => { if (f[1] === pkgIdx) arr.push(i); });
@@ -175,6 +180,7 @@ export function enumerateAllPaths(adjacency, rootId, {
   return paths;
 }
 
+/** Finds every node reachable within a hop limit from a starting node, for isolate-mode graph views. */
 export function bfs(startIdx, outAdj, inAdj, hopLimit, direction) {
   const visible = new Set([startIdx]);
   let frontier = [startIdx];
@@ -345,6 +351,7 @@ export function complexity(snippet) {
 // when the regex fails we return { raw } so the UI can fall back to showing
 // the raw first line. Truth is in the source — this is best-effort.
 
+/** Finds the first non-blank, non-comment line of a snippet, used as the basis for signature parsing. */
 function firstMeaningfulLine(snippet) {
   if (!snippet) return null;
   for (const raw of snippet.split('\n')) {
@@ -452,6 +459,7 @@ function parseParam(raw) {
   return null;
 }
 
+/** Finds the index of a colon at bracket/string nesting depth zero, for splitting a name from its type. */
 function findTopLevelColon(str) {
   let depth = 0;
   let inStr = null;
@@ -559,6 +567,7 @@ export function parseSignature(snippet) {
 //   type X<T> = { a: T1; b?: T2 }
 //   interface X { [k: string]: V }
 // Returns { members, generics } or null.
+/** Parses a TS interface/type-alias snippet into its member names and types for display. */
 export function parseTypeBody(snippet) {
   if (!snippet) return null;
   const m = snippet.match(/\b(?:interface|type)\s+\w+/);
@@ -874,6 +883,7 @@ export function packageSummaries(packages, files, symbols, symInAdj, fileSymbolI
   return out;
 }
 
+/** Loads graph data from window.__GRAPH_DATA__, falling back to sample data for local dev without a real export. */
 export function loadGraphData() {
   if (typeof window !== 'undefined' && window.__GRAPH_DATA__) {
     return window.__GRAPH_DATA__;

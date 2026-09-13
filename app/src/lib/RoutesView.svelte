@@ -1,4 +1,5 @@
 <script>
+  // API surface view: every route/resolver CodeGraph found, grouped by controller and filterable by HTTP method.
   import { DATA, symOutAdj } from './stores.js';
   import { jumpToSymbol, openAllFlows } from './actions.js';
   import { pkgColor, displayName } from './graph.js';

@@ -1,4 +1,5 @@
 <script>
+  // Force-directed bubble view of packages, sized by file count and colored by package, with click-to-isolate and double-click-to-drill-in navigation.
   import { onMount, onDestroy } from 'svelte';
   import * as d3 from 'd3';
   import { DATA, isolate, packageFilter } from './stores.js';
@@ -10,12 +11,14 @@
   let nodeSel, linkSel;
   let unsubIsolate, unsubFilter;
 
+  // Whether a package node should render dimmed given the current isolate/filter state.
   function isDimmed($isolate, $packageFilter, id) {
     if ($isolate && !$isolate.visible.has(id)) return true;
     if ($packageFilter && !$packageFilter.has(id)) return true;
     return false;
   }
 
+  // Restyles existing nodes/links (opacity, color) to reflect the current isolate/filter state without rebuilding the simulation.
   function applyIsolateStyle($isolate, $packageFilter) {
     if (!nodeSel || !linkSel) return;
     linkSel

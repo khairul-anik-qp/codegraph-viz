@@ -24,6 +24,7 @@ const STORE_IDS = new Set([
 ]);
 const VIEW_KEY_PARTS = ['view', 'pkg', 'root', 'aroot', 'sym', 'dir', 'depth'];
 
+/** Parses the current window.location.hash into a flat key/value object of recognized store ids. */
 function readHash() {
   const h = window.location.hash.replace(/^#/, '');
   const out = {};
@@ -36,6 +37,7 @@ function readHash() {
   return out;
 }
 
+/** Serializes a key/value object into a `#k=v&k=v` location.hash string, omitting empty values. */
 function buildHash(obj) {
   const parts = [];
   for (const [k, v] of Object.entries(obj)) {
@@ -54,6 +56,7 @@ function viewKeyOf(obj) {
   return buildHash(sub).replace(/^#/, '');
 }
 
+/** Reads the current app stores into the flat hash-shaped object that represents shareable state. */
 function collect() {
   const out = {};
   const v = get(view);
@@ -79,6 +82,7 @@ let installed = false;
 let lastViewKey = '';
 let suppressHashWrite = false; // set while we're restoring from popstate
 
+/** Writes `obj` to the URL hash, choosing pushState vs replaceState depending on whether the view changed. */
 function writeHash(obj) {
   const newHash = buildHash(obj);
   if (window.location.hash === newHash) return;
@@ -93,6 +97,7 @@ function writeHash(obj) {
 }
 
 let pendingHashUpdate = null;
+/** Debounces store-driven hash writes so rapid successive changes collapse into one history entry. */
 function scheduleHashUpdate() {
   if (suppressHashWrite) return;
   if (pendingHashUpdate) return;
@@ -102,6 +107,7 @@ function scheduleHashUpdate() {
   }, 200);
 }
 
+/** Applies a parsed hash object onto the app stores without re-triggering a hash write. */
 function applyFromHash(h) {
   suppressHashWrite = true;
   try {
@@ -120,6 +126,7 @@ function applyFromHash(h) {
   }
 }
 
+/** Wires up two-way sync between the app stores and the URL hash, restoring state on load and on navigation. */
 export function applyHashState() {
   if (installed) return;
   installed = true;
@@ -171,6 +178,7 @@ export function goBack() {
   }
 }
 
+/** Immediately flushes the current app state to the URL hash, bypassing the debounce. */
 export function syncHash() {
   if (installed) writeHash(collect());
 }

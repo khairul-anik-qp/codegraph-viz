@@ -1,4 +1,5 @@
 <script>
+  // Modal that shows a syntax-highlighted source snippet for a symbol, with copy-to-clipboard.
   import { createEventDispatcher } from 'svelte';
   import { highlightBlock } from './highlight.js';
   import Modal from './Modal.svelte';
@@ -11,12 +12,14 @@
   export let startLine = 1;
 
   const dispatch = createEventDispatcher();
+  // Notifies the parent that this modal should be closed.
   function close() { dispatch('close'); }
 
   $: html = snippet ? highlightBlock(snippet, language) : '';
   $: lineCount = snippet ? snippet.split('\n').length : 0;
 
   let copied = false;
+  // Copies the current snippet to the clipboard and shows a transient confirmation.
   async function copy() {
     try {
       await navigator.clipboard.writeText(snippet);

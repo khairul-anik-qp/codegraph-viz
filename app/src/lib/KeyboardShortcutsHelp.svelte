@@ -1,4 +1,5 @@
 <script>
+  // `?`-triggered modal listing every keyboard shortcut in the app.
   import { shortcutsHelpOpen } from './stores.js';
   import Modal from './Modal.svelte';
 
@@ -14,6 +15,7 @@
     { key: '?', desc: 'Show this help' },
   ];
 
+  // Dismisses the shortcuts help modal.
   function close() { shortcutsHelpOpen.set(false); }
 </script>
 

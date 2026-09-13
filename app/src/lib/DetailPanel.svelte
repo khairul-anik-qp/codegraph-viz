@@ -1,4 +1,6 @@
 <script>
+  // Right-hand detail panel: shows the selected file's symbol overview, or a
+  // selected symbol's full signature, docs, source snippet, callers/callees.
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
   import { DATA, selectedFile, selectedSymbol, fileInAdj, fileOutAdj, symInAdj, symOutAdj, symUsageInAdj, detailMode, sourceModalOpen } from './stores.js';
@@ -104,6 +106,7 @@
   // other shortcuts while it's open.
   $: if (symbol) sourceModalOpen.set(false);
 
+  // Clears the selected file/symbol, closing the detail panel.
   function close() { selectedFile.set(null); selectedSymbol.set(null); }
 </script>
 

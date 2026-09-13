@@ -18,6 +18,7 @@
   $: lang = DATA.files[s[4]][2];
   $: title = `${s[1]} · ${DATA.files[s[4]][0]}`;
 
+  // Source snippet text for a symbol, or empty string if none captured.
   function snippetFor(id) {
     return DATA.symbols[id][5] || '';
   }

@@ -7,6 +7,7 @@ import {
 } from './stores.js';
 import { bfs, enumerateAllPaths } from './graph.js';
 
+/** Enters isolate mode, showing only nodes reachable from the given package/file within the current hop settings. */
 export function setIsolate(type, idx, name) {
   const outAdj = type === 'pkg' ? pkgOutAdj : fileOutAdj;
   const inAdj = type === 'pkg' ? pkgInAdj : fileInAdj;
@@ -14,10 +15,12 @@ export function setIsolate(type, idx, name) {
   isolate.set({ type, idx, name, visible });
 }
 
+/** Exits isolate mode, restoring the full graph view. */
 export function clearIsolate() {
   isolate.set(null);
 }
 
+/** Navigates into a package's file view, resetting any prior selection/isolation. */
 export function openPackage(pkgIdx) {
   view.set('files');
   currentPkg.set(pkgIdx);
@@ -26,6 +29,7 @@ export function openPackage(pkgIdx) {
   selectedSymbol.set(null);
 }
 
+/** Navigates back to the top-level packages view, clearing selection/isolation state. */
 export function goToPackagesView() {
   view.set('packages');
   isolate.set(null);
@@ -62,6 +66,7 @@ export function selectSymbol(symId) {
   selectedSymbol.set(symId);
 }
 
+/** Deselects the current symbol, returning the detail panel to the file-level overview. */
 export function backToFileOverview() {
   selectedSymbol.set(null);
 }
@@ -75,6 +80,7 @@ function syncDetailToSymbol(symId) {
   selectedFile.set(DATA.symbols[symId][4]);
 }
 
+/** Opens the flow diagram rooted at a symbol, resetting depth/trail/filter for a fresh single-direction trace. */
 export function openFlow(symId, dir = 'out') {
   view.set('flow');
   flowRoot.set(symId);
@@ -98,6 +104,7 @@ export function flowDrillTo(symId) {
   syncDetailToSymbol(symId);
 }
 
+/** Pops the flow trail, returning the diagram to the previously visited root. */
 export function flowBack() {
   flowTrail.update(t => {
     if (t.length === 0) return t;
@@ -110,6 +117,7 @@ export function flowBack() {
   });
 }
 
+/** Jumps directly to an earlier entry in the flow trail, discarding everything visited after it. */
 export function flowJumpToTrail(index) {
   flowTrail.update(t => {
     flowRoot.set(t[index]);
@@ -188,6 +196,7 @@ export function togglePackageFocus(pkgIdx, additive = false) {
   });
 }
 
+/** Removes any active package focus, restoring the unfiltered graph. */
 export function clearPackageFocus() {
   packageFilter.set(null);
 }

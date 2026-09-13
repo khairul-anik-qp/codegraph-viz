@@ -1,4 +1,5 @@
 <script>
+  // Sortable, filterable list of files within a package, with row selection and scroll-to-focus.
   import { tick } from 'svelte';
   import {
     DATA, currentPkg, selectedFile, selectedSymbol, focusRequest, packageFilter,
@@ -38,11 +39,13 @@
     return arr;
   })();
 
+  // Toggles sort column, flipping direction if the same column is clicked again.
   function setSort(key) {
     if (sortKey === key) sortDir = -sortDir;
     else { sortKey = key; sortDir = 1; }
   }
 
+  // Selects a file row, or deselects it if it's already selected.
   function selectRow(idx) {
     if ($selectedFile === idx) {
       selectedFile.set(null);
@@ -53,6 +56,7 @@
     }
   }
 
+  // Returns the display-friendly path for a file index.
   function rowFile(fileIdx) {
     const f = DATA.files[fileIdx];
     return displayName(f[0]);

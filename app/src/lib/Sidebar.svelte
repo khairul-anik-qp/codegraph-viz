@@ -1,4 +1,6 @@
 <script>
+  // Left navigation panel: search, view switcher, flow/isolate controls, edge
+  // kind toggles, and the package list — with collapsible, persisted sections.
   import { writable, derived } from 'svelte/store';
   import {
     DATA, view, isolate, hop, direction, showImports, showCalls, searchQuery,
@@ -69,6 +71,8 @@
     return [...set].sort();
   })();
 
+  // Adds/removes a symbol kind from the active kind filter, clearing the
+  // filter entirely once every kind (or none) is selected.
   function toggleKind(k) {
     symbolKindFilter.update(cur => {
       const next = new Set(cur || []);
@@ -76,6 +80,7 @@
       return next.size === 0 || next.size === availableKinds.length ? null : next;
     });
   }
+  // Resets the symbol-kind filter so search shows every kind again.
   function clearKindFilter() { symbolKindFilter.set(null); }
 
   // File hits and symbol (function/class/etc) hits, interleaved with symbols
@@ -128,10 +133,14 @@
       .map(([name, count], i) => ({ name, count, color: pkgColor(i) }));
   })();
 
+  // Changes the isolation hop depth and re-applies the active isolation so
+  // the graph re-renders with the new radius.
   function pickHop(h) {
     hop.set(h);
     if ($isolate) setIsolate($isolate.type, $isolate.idx, $isolate.name);
   }
+  // Changes the isolation direction (in/out/both) and re-applies the active
+  // isolation so the graph re-renders accordingly.
   function pickDir(d) {
     direction.set(d);
     if ($isolate) setIsolate($isolate.type, $isolate.idx, $isolate.name);
@@ -159,6 +168,8 @@
     packages: false,
   };
   const MIGRATE_KEYS = ['views', 'packages'];
+  // Reads the persisted accordion open/closed state from localStorage,
+  // dropping stale entries for keys whose default has since changed.
   function loadOpenSections() {
     if (typeof localStorage === 'undefined') return {};
     try {
@@ -179,6 +190,7 @@
   const isOpen = derived(openSections, ($m) => (key) =>
     key in $m ? $m[key] : DEFAULT_OPEN[key] !== false
   );
+  // Flips one accordion section's open/closed state and persists it.
   function toggleSection(key) {
     openSections.update(m => {
       const current = key in m ? m[key] : DEFAULT_OPEN[key] !== false;

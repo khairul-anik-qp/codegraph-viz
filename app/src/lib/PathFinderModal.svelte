@@ -1,4 +1,5 @@
 <script>
+  // "Find path between any two symbols" modal: search two symbols, run shortestPath, render the result as a clickable chain.
   import { DATA, pathFinderOpen, symOutAdj, symInAdj } from './stores.js';
   import { shortestPath, pkgColor, displayName } from './graph.js';
   import { jumpToSymbol } from './actions.js';
@@ -23,14 +24,18 @@
         .slice(0, 8)
     : [];
 
+  // Selects a symbol from the "from" suggestion list.
   function pickFrom(i) { fromId = i; fromQuery = DATA.symbols[i][0]; path = undefined; }
+  // Selects a symbol from the "to" suggestion list.
   function pickTo(i) { toId = i; toQuery = DATA.symbols[i][0]; path = undefined; }
 
+  // Computes the shortest call-graph path between the selected from/to symbols.
   function findPath() {
     if (fromId === null || toId === null) return;
     path = shortestPath(fromId, toId, symOutAdj, symInAdj);
   }
 
+  // Clears all search/selection/result state back to the initial empty form.
   function reset() {
     fromQuery = '';
     toQuery = '';
@@ -39,11 +44,13 @@
     path = undefined;
   }
 
+  // Closes the modal and resets its form state.
   function close() {
     pathFinderOpen.set(false);
     reset();
   }
 
+  // Closes the modal and navigates to the clicked symbol in the result chain.
   function jump(symId) {
     close();
     jumpToSymbol(symId);

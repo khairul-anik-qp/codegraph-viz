@@ -1,9 +1,11 @@
 <script>
+  // Dashboard flagging index-quality issues: files with parse errors, stale (unreindexed) files, and unresolved internal imports.
   import { DATA } from './stores.js';
   import { jumpToFile } from './actions.js';
   import { displayName } from './graph.js';
 
   $: projectRoot = DATA.projectRoot || '';
+  // Builds a vscode:// deep link to a specific line/column of a file, when a project root is known.
   function vscodeUri(relPath, line = 1, col = 1) {
     if (!projectRoot) return '#';
     return `vscode://file${projectRoot}/${relPath}:${line}:${col}`;
@@ -59,6 +61,7 @@
   // CodeGraph's to evolve.
   $: metadataEntries = Object.entries(DATA.projectMetadata || {});
 
+  // Renders a millisecond age as a coarse human-readable day count.
   function formatAge(ms) {
     const days = ms / 86400000;
     if (days < 1) return '< 1 day';

@@ -1,4 +1,6 @@
 <script>
+  // Top app bar: title, back button, breadcrumb trail for the active view, and
+  // global stats/actions (diff toggle, path finder).
   import { DATA, view, currentPkg, flowRoot, flowDirection, flowTrail, allFlowsRoot, pathFinderOpen } from './stores.js';
   import { goToPackagesView, flowJumpToTrail, openFlow } from './actions.js';
   import { goBack } from './hashState.js';

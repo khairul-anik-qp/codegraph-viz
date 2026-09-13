@@ -1,4 +1,5 @@
 <script>
+  // Enumerates and lists every caller/callee path through a root symbol, grouped and sortable, with entry-point origins and named-flow bookmarks.
   import {
     DATA,
     allFlowsRoot,
@@ -32,34 +33,42 @@
   let dedup = true;
   let sortBy = "length"; // 'length' | 'leaf' | 'pkg'
 
+  // Toggles a path row's expanded (walk-the-path snippet grid) state.
   function toggleExpand(key) {
     if (expanded.has(key)) expanded.delete(key);
     else expanded.add(key);
     expanded = new Set(expanded);
   }
+  // Toggles the single-node source snippet pane for a path row.
   function showSnippet(key) {
     snippetPath = snippetPath === key ? null : key;
   }
 
+  // Display label for a symbol chip.
   function symChipLabel(symId) {
     return DATA.symbols[symId][0];
   }
+  // Tooltip text for a symbol chip: its kind and file.
   function symChipTitle(symId) {
     const s = DATA.symbols[symId];
     const file = DATA.files[s[4]];
     return `${s[1]} · ${file[0]}`;
   }
+  // Package index that a symbol belongs to.
   function pkgOf(symId) {
     return DATA.files[DATA.symbols[symId][4]][1];
   }
+  // File path a symbol is defined in.
   function leafFile(symId) {
     return DATA.files[DATA.symbols[symId][4]][0];
   }
+  // Short (last path segment) package name for a symbol's leaf package.
   function leafPkgName(symId) {
     const idx = pkgOf(symId);
     return DATA.packages[idx] ? DATA.packages[idx][0].split("/").pop() : "?";
   }
 
+  // Orders two paths by the active sort mode (length first, then leaf package name).
   function comparePaths(a, b) {
     if (sortBy === "length") {
       const d = a.length - b.length;
@@ -71,6 +80,7 @@
     return 0;
   }
 
+  // Sorts, optionally dedups shared-prefix paths, and groups them by leaf package for display.
   function sortAndGroup(paths) {
     const sorted = paths.slice().sort(comparePaths);
     let deduped = sorted;
@@ -129,6 +139,7 @@
     return out;
   })();
 
+  // Opens the full-screen PathInspector focused on this single path.
   function focusPath(path, dir) {
     inspectedPath.set({ rootId, dir, path, name: getFlowName(rootId, path) });
   }
@@ -145,10 +156,12 @@
     const firstNm = DATA.symbols[first]?.[0] || "?";
     return `${firstNm} → ${lastNm}`;
   }
+  // Saves the user-entered name for a path on blur.
   function onNameBlur(rootId, path, value) {
     setFlowName(rootId, path, value);
   }
 
+  // Source snippet text for a symbol, or empty string if none captured.
   function snippetFor(symId) {
     const s = DATA.symbols[symId];
     return s[5] || "";

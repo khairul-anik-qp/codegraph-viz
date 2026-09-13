@@ -1,10 +1,14 @@
 <script>
+  // Generic centered-overlay modal shell: backdrop, Escape-to-close, X button.
+  // Reused by PathFinderModal, KeyboardShortcutsHelp, and SourceModal.
   import { createEventDispatcher } from 'svelte';
   export let open = false;
   export let title = '';
   export let wide = false;
   const dispatch = createEventDispatcher();
+  // Notifies the parent to close the modal.
   function close() { dispatch('close'); }
+  // Closes the modal when Escape is pressed while it's open.
   function onKeydown(e) { if (e.key === 'Escape') close(); }
 </script>
 

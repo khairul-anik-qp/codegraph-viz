@@ -6,6 +6,7 @@ import Database from 'better-sqlite3';
 
 const dbCache = new Map<string, Database.Database>();
 
+/** Returns a cached, read-only connection to the SQLite database at `dbPath`, opening it on first use. */
 function getDb(dbPath: string): Database.Database {
   let db = dbCache.get(dbPath);
   if (!db) {
@@ -15,6 +16,7 @@ function getDb(dbPath: string): Database.Database {
   return db;
 }
 
+/** Runs a SQL query against the given database and returns its rows as plain objects. */
 export function sqliteJson(dbPath: string, sql: string): Record<string, unknown>[] {
   return getDb(dbPath).prepare(sql).all() as Record<string, unknown>[];
 }

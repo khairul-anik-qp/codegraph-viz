@@ -86,6 +86,7 @@ function parseArgs(argv) {
   return opts;
 }
 
+/** Verifies the `sqlite3` CLI is on PATH, exiting with install instructions if it's missing. */
 function ensureSqlite3() {
   try {
     execFileSync('sqlite3', ['--version'], { stdio: 'ignore' });
@@ -100,6 +101,7 @@ function ensureSqlite3() {
   }
 }
 
+/** Runs a query against the CodeGraph database via the `sqlite3` CLI and parses its JSON output. */
 function sqliteJson(db, sql) {
   const out = execFileSync('sqlite3', ['-json', db, sql], { maxBuffer: 1024 * 1024 * 512 });
   const text = out.toString('utf8').trim();
