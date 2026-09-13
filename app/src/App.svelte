@@ -22,6 +22,7 @@
   import DocsView from './lib/DocsView.svelte';
   import IndexHealthView from './lib/IndexHealthView.svelte';
   import DetailPanel from './lib/DetailPanel.svelte';
+  import NodeTooltip from './lib/NodeTooltip.svelte';
   import { applyHashState, syncHash } from './lib/hashState.js';
 
   $: hint = $view === 'packages'
@@ -145,4 +146,5 @@
     <div class="hint">{@html hint}</div>
   </main>
   <DetailPanel />
+  <NodeTooltip />
 </div>

@@ -1,7 +1,7 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import * as d3 from 'd3';
-  import { DATA, symOutAdj, symInAdj, flowRoot, flowDirection, flowDepth, flowFeatureFilter, packageFilter, flowTrail } from './stores.js';
+  import { DATA, symOutAdj, symInAdj, flowRoot, flowDirection, flowDepth, flowFeatureFilter, packageFilter, flowTrail, tooltipState } from './stores.js';
   import { flowDrillTo, flowJumpToTrail, openAllFlows } from './actions.js';
   import { buildFlowTree, pkgColor, displayName, featureGroup } from './graph.js';
 
@@ -95,7 +95,14 @@
 
     const node = g.append('g').selectAll('g').data(hierarchy.descendants()).join('g')
       .attr('transform', d => `translate(${sx(d.y) - NODE_W / 2},${d.x - NODE_H / 2})`)
-      .style('cursor', d => d.data.cyclic ? 'default' : 'pointer');
+      .style('cursor', d => d.data.cyclic ? 'default' : 'pointer')
+      .on('mouseenter', (event, d) => {
+        tooltipState.set({ x: event.clientX, y: event.clientY, symId: d.data.id });
+      })
+      .on('mousemove', (event, d) => {
+        tooltipState.update(cur => cur ? { ...cur, x: event.clientX, y: event.clientY } : cur);
+      })
+      .on('mouseleave', () => tooltipState.set(null));
 
     node.filter(d => !!d.data.doc).append('title').text(d => d.data.doc);
 
@@ -249,6 +256,13 @@
     zoomBehavior = d3.zoom().scaleExtent([0.25, 2.5]).on('zoom', (ev) => g.attr('transform', ev.transform));
     svg.call(zoomBehavior);
   });
+
+  // Switching views (or navigating away) tears down these node <g> elements
+  // without necessarily firing a DOM mouseleave on them first, which would
+  // otherwise leave NodeTooltip (mounted globally in App.svelte) showing a
+  // stale tooltip over whatever view comes next. Clear it unconditionally
+  // on unmount.
+  onDestroy(() => tooltipState.set(null));
 </script>
 
 {#if root !== null}

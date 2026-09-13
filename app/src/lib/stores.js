@@ -106,6 +106,12 @@ export const selectedFile = writable(null);
 export const selectedSymbol = writable(null); // global symbol id, or null for file-overview
 export const searchQuery = writable('');
 
+// ---------- hover tooltip ----------
+// { x, y, symId } in viewport coordinates, or null when nothing is hovered.
+// A single shared store so only one NodeTooltip instance needs to exist
+// (mounted once in App.svelte) no matter which view is showing nodes.
+export const tooltipState = writable(null);
+
 // ---------- package focus ----------
 // null = no restriction (everything). A Set of package indices otherwise —
 // scopes search results, dims non-matching packages in the package view,
