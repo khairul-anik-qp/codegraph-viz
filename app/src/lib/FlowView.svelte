@@ -46,10 +46,9 @@
   $: hasGhostSiblings = ghostSiblings.length > 0;
   $: showGhosts = hasGhostAncestors || hasGhostSiblings;
 
-  $: if (treeData && gEl && zoomBehavior) drawTree(treeData);
+  $: if (treeData && gEl && zoomBehavior) drawTree(treeData, $diffOverlayOn);
 
-  function drawTree(data) {
-    const overlayOn = $diffOverlayOn;
+  function drawTree(data, overlayOn) {
     const hierarchy = d3.hierarchy(data, d => d.children);
     const layoutFn = d3.tree().nodeSize([NODE_H + V_GAP, NODE_W + H_GAP]);
     layoutFn(hierarchy);

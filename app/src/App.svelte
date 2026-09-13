@@ -4,6 +4,7 @@
   import {
     view, currentPkg, flowRoot, allFlowsRoot, selectedSymbol, searchQuery,
     packageFilter, symbolKindFilter, pathFinderOpen, shortcutsHelpOpen, diffOverlayOn,
+    sourceModalOpen,
   } from './lib/stores.js';
   import { openFlow, openAllFlows, jumpToSymbol, goToPackagesView, openPackage } from './lib/actions.js';
   import { goBack } from './lib/hashState.js';
@@ -76,11 +77,17 @@
         if (active && isTypingTarget(active)) { active.blur(); return; }
         if (get(shortcutsHelpOpen)) { shortcutsHelpOpen.set(false); return; }
         if (get(pathFinderOpen)) { pathFinderOpen.set(false); return; }
+        if (get(sourceModalOpen)) { sourceModalOpen.set(false); return; }
         if (get(searchQuery)) { searchQuery.set(''); return; }
         if (symId !== null) { selectedSymbol.set(null); return; }
         view.set('packages');
         return;
       }
+      // Suppress every other single-key shortcut while any modal is open —
+      // otherwise e.g. 'd' toggles the (invisible, behind-the-modal) diff
+      // overlay, or 'p' opens Path Finder stacked behind an already-open
+      // modal.
+      if (get(shortcutsHelpOpen) || get(pathFinderOpen) || get(sourceModalOpen)) return;
       if (isTypingTarget(ev.target)) return;
 
       if (key === '/') {

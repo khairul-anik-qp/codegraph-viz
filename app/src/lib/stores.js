@@ -142,6 +142,13 @@ export const pathFinderOpen = writable(false);
 // Whether the keyboard shortcuts help modal is open.
 export const shortcutsHelpOpen = writable(false);
 
+// ---------- source modal (DetailPanel's expand-to-modal source viewer) ----------
+// Shared store (not a component-local boolean) so App.svelte's global
+// keydown handler can see it — needed both to prioritize closing just the
+// modal on Escape (rather than falling through to deselect the symbol) and
+// to suppress other single-key shortcuts while it's open.
+export const sourceModalOpen = writable(false);
+
 // ---------- package focus ----------
 // null = no restriction (everything). A Set of package indices otherwise —
 // scopes search results, dims non-matching packages in the package view,

@@ -1,7 +1,7 @@
 <script>
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
-  import { DATA, selectedFile, selectedSymbol, fileInAdj, fileOutAdj, symInAdj, symOutAdj, symUsageInAdj, detailMode } from './stores.js';
+  import { DATA, selectedFile, selectedSymbol, fileInAdj, fileOutAdj, symInAdj, symOutAdj, symUsageInAdj, detailMode, sourceModalOpen } from './stores.js';
   import { jumpToFile, jumpToSymbol, selectSymbol, backToFileOverview, openFlow } from './actions.js';
   import { pkgColor, shortPkg, displayName, complexity, findRelatedTests, transitiveReach, parseSignature, parseTypeBody } from './graph.js';
   import { highlightLine } from './highlight.js';
@@ -99,8 +99,10 @@
   $: snippetStart = symbol ? symbol[2] : 1;
   $: lastSnippetLine = snippetLines[snippetLines.length - 1] || '';
   $: snippetTruncated = lastSnippetLine.startsWith('…');
-  let sourceModalOpen = false;
-  $: if (symbol) sourceModalOpen = false;
+  // sourceModalOpen lives in stores.js (not a local let) so App.svelte's
+  // global keydown handler can prioritize closing it on Escape and suppress
+  // other shortcuts while it's open.
+  $: if (symbol) sourceModalOpen.set(false);
 
   function close() { selectedFile.set(null); selectedSymbol.set(null); }
 </script>
@@ -225,7 +227,7 @@
     {#if symbol[5]}
       <div class="panel-title-row">
         <div class="panel-title" style="margin:0;">Source</div>
-        <button class="flow-link" on:click={() => (sourceModalOpen = true)}>expand →</button>
+        <button class="flow-link" on:click={() => sourceModalOpen.set(true)}>expand →</button>
       </div>
       <div class="snippet mono">
         {#each snippetLines as line, i}
@@ -240,13 +242,13 @@
         {/each}
       </div>
       <SourceModal
-        open={sourceModalOpen}
+        open={$sourceModalOpen}
         name={symbol[0]}
         snippet={symbol[5]}
         language={symbolFile[2]}
         filePath={symbolFile[0]}
         startLine={snippetStart}
-        on:close={() => (sourceModalOpen = false)}
+        on:close={() => sourceModalOpen.set(false)}
       />
     {/if}
 
