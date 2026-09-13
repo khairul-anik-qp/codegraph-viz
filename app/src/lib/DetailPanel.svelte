@@ -4,6 +4,8 @@
   import { DATA, selectedFile, selectedSymbol, fileInAdj, fileOutAdj, symInAdj, symOutAdj, symUsageInAdj } from './stores.js';
   import { jumpToFile, jumpToSymbol, selectSymbol, backToFileOverview, openFlow } from './actions.js';
   import { pkgColor, shortPkg, displayName, complexity, findRelatedTests, transitiveReach, parseSignature, parseTypeBody } from './graph.js';
+  import { highlightLine } from './highlight.js';
+  import SourceModal from './SourceModal.svelte';
 
   const KIND_GROUP_ORDER = ['component', 'class', 'function', 'method', 'interface', 'type_alias', 'enum', 'enum_member', 'constant', 'variable', 'property', 'route'];
 
@@ -97,6 +99,8 @@
   $: snippetStart = symbol ? symbol[2] : 1;
   $: lastSnippetLine = snippetLines[snippetLines.length - 1] || '';
   $: snippetTruncated = lastSnippetLine.startsWith('…');
+  let sourceModalOpen = false;
+  $: if (symbol) sourceModalOpen = false;
 
   function close() { selectedFile.set(null); selectedSymbol.set(null); }
 </script>
@@ -219,7 +223,10 @@
     </div>
 
     {#if symbol[5]}
-      <div class="panel-title">Source</div>
+      <div class="panel-title-row">
+        <div class="panel-title" style="margin:0;">Source</div>
+        <button class="flow-link" on:click={() => (sourceModalOpen = true)}>expand →</button>
+      </div>
       <div class="snippet mono">
         {#each snippetLines as line, i}
           {#if i === snippetLines.length - 1 && snippetTruncated}
@@ -227,11 +234,20 @@
           {:else}
             <div class="snippet-line">
               <a class="ln" href={vscodeUri(symbolFile[0], snippetStart + i)} title={projectRoot ? `Open line ${snippetStart + i} in VS Code` : 'No project root'}>{snippetStart + i}</a>
-              <span class="code">{line || ' '}</span>
+              <span class="code">{@html highlightLine(line || ' ', symbolFile[2])}</span>
             </div>
           {/if}
         {/each}
       </div>
+      <SourceModal
+        open={sourceModalOpen}
+        name={symbol[0]}
+        snippet={symbol[5]}
+        language={symbolFile[2]}
+        filePath={symbolFile[0]}
+        startLine={snippetStart}
+        on:close={() => (sourceModalOpen = false)}
+      />
     {/if}
 
     <div class="panel-title-row" style="margin-top:14px;">

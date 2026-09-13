@@ -2,6 +2,7 @@
   import { createEventDispatcher } from 'svelte';
   export let open = false;
   export let title = '';
+  export let wide = false;
   const dispatch = createEventDispatcher();
   function close() { dispatch('close'); }
   function onKeydown(e) { if (e.key === 'Escape') close(); }
@@ -11,7 +12,7 @@
 
 {#if open}
   <div class="modal-backdrop" on:click={close}>
-    <div class="modal-box" on:click|stopPropagation>
+    <div class="modal-box" class:wide on:click|stopPropagation>
       <div class="modal-head">
         <h3>{title}</h3>
         <button class="modal-close" on:click={close}>✕</button>
@@ -61,6 +62,7 @@
     cursor: pointer;
   }
   .modal-close:hover { color: var(--accent); }
+  .modal-box.wide { width: min(880px, 94vw); }
   .modal-body {
     padding: 14px 16px;
     overflow-y: auto;
