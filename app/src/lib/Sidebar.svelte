@@ -4,7 +4,7 @@
     DATA, view, isolate, hop, direction, showImports, showCalls, searchQuery,
     flowRoot, flowDirection, flowDepth, flowTrail, flowFeatureFilter,
     symOutAdj, symInAdj, packageFilter, symUsageInAdj,
-    searchMode, symbolKindFilter, deadCodeSymbols,
+    symbolKindFilter, deadCodeSymbols,
   } from './stores.js';
   import {
     setIsolate, clearIsolate, openPackage, jumpToFile, jumpToSymbol,
@@ -96,26 +96,12 @@
     if (!q) return [];
     const out = [];
     const kinds = $symbolKindFilter;
-    const mode = $searchMode;
-    let matcher;
-    if (mode === 'regex') {
-      try { matcher = new RegExp(q, 'i'); } catch { matcher = null; }
-      if (!matcher) return [];
-    } else {
-      const needle = q.toLowerCase();
-      matcher = { test: (s) => s && s.toLowerCase().includes(needle) };
-    }
+    const needle = q.toLowerCase();
     for (let i = 0; i < DATA.symbols.length && out.length < 20; i++) {
       const s = DATA.symbols[i];
       if ($packageFilter && !$packageFilter.has(DATA.files[s[4]][1])) continue;
       if (kinds && !kinds.has(s[1])) continue;
-      if (matcher.test(s[0])) { out.push(i); continue; }
-      if (mode !== 'names') {
-        // 'code' searches snippet + signature; 'regex' also searches docstring
-        if (matcher.test(s[5])) { out.push(i); continue; }
-        if (matcher.test(s[7])) { out.push(i); continue; }
-        if (mode === 'regex' && matcher.test(s[6])) { out.push(i); continue; }
-      }
+      if (s[0] && s[0].toLowerCase().includes(needle)) out.push(i);
     }
     return out;
   })();
@@ -212,13 +198,6 @@
         <span class="section-chev" class:open={$isOpen('search')}>▸</span>
         <span class="section-title">Search files &amp; functions</span>
       </button>
-      {#if $isOpen('search')}
-        <div class="search-mode-toggle">
-          <button class:active={$searchMode === 'names'} on:click={() => searchMode.set('names')} title="Match symbol names only">names</button>
-          <button class:active={$searchMode === 'code'} on:click={() => searchMode.set('code')} title="Substring match in names + snippet + signature">code</button>
-          <button class:active={$searchMode === 'regex'} on:click={() => searchMode.set('regex')} title="Regex match across names + docstrings + snippets">regex</button>
-        </div>
-      {/if}
     </div>
     {#if $isOpen('search')}
       <div class="section-body">
@@ -552,7 +531,11 @@
   .section-search .search-results {
     flex: 1 1 auto;
     min-height: 0;
+    margin-top: 6px;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
   .section:first-of-type {
     border-top: none;
@@ -587,7 +570,7 @@
   .section-chev {
     display: inline-block;
     color: var(--muted);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     font-size: 10px;
     width: 10px;
     flex: 0 0 auto;
@@ -603,7 +586,7 @@
   }
   .section-meta {
     margin-left: auto;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     font-size: 10px;
     color: var(--muted);
   }
@@ -700,32 +683,12 @@
     border-radius: 12px;
     padding: 2px 8px;
     font-size: 10px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     cursor: pointer;
+    flex-grow: 1;
   }
   .kind-chip:hover { color: var(--text); border-color: var(--accent); }
   .kind-chip.active { background: var(--accent); color: white; border-color: var(--accent); }
   .kind-chip.clear { color: var(--muted); }
   .dead-code-row { width: 100%; }
-  .search-mode-toggle {
-    display: flex;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    overflow: hidden;
-  }
-  .search-mode-toggle button {
-    background: var(--surface);
-    color: var(--muted);
-    border: none;
-    border-right: 1px solid var(--border);
-    padding: 3px 8px;
-    cursor: pointer;
-    font: inherit;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    font-weight: 700;
-  }
-  .search-mode-toggle button:last-child { border-right: none; }
-  .search-mode-toggle button.active { background: var(--accent); color: white; }
 </style>

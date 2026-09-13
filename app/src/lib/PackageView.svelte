@@ -72,7 +72,7 @@
       .text(d => shortPkg(d.name))
       .attr('text-anchor', 'middle')
       .attr('dy', -2)
-      .style('font-family', "'Manrope', sans-serif")
+      .style('font-family', "var(--vscode-font-family, 'Manrope', sans-serif)")
       .style('font-weight', 800)
       .style('font-size', '12px')
       .style('pointer-events', 'none');
@@ -81,7 +81,7 @@
       .text(d => `${d.fileCount} files`)
       .attr('text-anchor', 'middle')
       .attr('dy', 13)
-      .style('font-family', "'JetBrains Mono', monospace")
+      .style('font-family', "var(--vscode-editor-font-family, 'JetBrains Mono', monospace)")
       .style('font-size', '10px')
       .style('pointer-events', 'none');
 

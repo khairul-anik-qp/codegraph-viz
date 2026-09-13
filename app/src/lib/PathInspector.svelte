@@ -7,6 +7,7 @@
   import { DATA, inspectedPath, setFlowName } from './stores.js';
   import { jumpToSymbol, openAllFlows } from './actions.js';
   import { pkgColor, displayName } from './graph.js';
+  import { highlightBlock } from './highlight.js';
 
   $: ins = $inspectedPath;
 
@@ -69,7 +70,7 @@
           <span class="ins-file mono">{displayName(file[0])}:{s[2]}</span>
           <button class="ins-reroot" on:click={() => inspectorRerootAt(symId)} title="Re-root all-flows at this symbol">re-root ↗</button>
         </div>
-        <pre class="ins-src mono">{s[5] || '(no snippet)'}</pre>
+        <pre class="ins-src mono">{@html s[5] ? highlightBlock(s[5], file[2]) : '(no snippet)'}</pre>
       </div>
       {#if j < ins.path.length - 1}
         <div class="ins-connector" title={ins.dir === 'callers' ? 'caller → callee' : 'caller → callee'}>
@@ -86,7 +87,7 @@
     inset: 0;
     overflow-y: auto;
     padding: 16px 20px 32px;
-    font-family: 'Manrope', sans-serif;
+    font-family: var(--vscode-font-family, 'Manrope', sans-serif);
     color: var(--text);
   }
   .inspector-head {
@@ -120,7 +121,7 @@
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 6px 12px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     font-size: 14px;
     font-weight: 700;
     color: var(--text);
@@ -129,7 +130,7 @@
   .inspector-title:focus { outline: none; border-color: var(--accent); background: var(--surface); }
   .inspector-meta { display: flex; align-items: center; gap: 8px; }
   .dir-badge {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     font-size: 10.5px;
     font-weight: 700;
     padding: 3px 9px;
@@ -140,7 +141,7 @@
   .dir-badge.callers { background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
   .dir-badge.callees { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
   .len-pill {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     font-size: 11px;
     color: var(--muted);
     background: var(--surface-2);
@@ -153,7 +154,7 @@
     color: var(--muted);
     border-radius: 4px;
     padding: 4px 10px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     font-size: 10.5px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -187,7 +188,7 @@
   }
   .ins-card.root .ins-card-head { background: var(--accent-soft); }
   .ins-idx {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     font-size: 10px;
     font-weight: 700;
     color: var(--muted);
@@ -237,7 +238,7 @@
   .ins-src {
     margin: 0;
     padding: 10px 14px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     font-size: 11.5px;
     line-height: 1.5;
     color: var(--text);
@@ -247,10 +248,29 @@
     max-height: 360px;
     overflow-y: auto;
   }
+  /* highlight.js token colors, mapped onto our theme tokens (see
+     PathSnippetCard.svelte for the same mapping). */
+  .ins-src :global(.hljs-keyword),
+  .ins-src :global(.hljs-operator) { color: var(--accent); }
+  .ins-src :global(.hljs-string),
+  .ins-src :global(.hljs-template-string),
+  .ins-src :global(.hljs-regexp) { color: var(--calls); }
+  .ins-src :global(.hljs-number),
+  .ins-src :global(.hljs-literal),
+  .ins-src :global(.hljs-built_in) { color: var(--imports); }
+  .ins-src :global(.hljs-comment),
+  .ins-src :global(.hljs-quote) { color: var(--muted); font-style: italic; }
+  .ins-src :global(.hljs-title),
+  .ins-src :global(.hljs-title.function_),
+  .ins-src :global(.hljs-title.class_) { color: var(--text); font-weight: 700; }
+  .ins-src :global(.hljs-tag),
+  .ins-src :global(.hljs-name),
+  .ins-src :global(.hljs-attr),
+  .ins-src :global(.hljs-attribute) { color: var(--danger); }
   .ins-connector {
     text-align: center;
     color: var(--accent);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     font-size: 14px;
     font-weight: 700;
     padding: 4px 0;

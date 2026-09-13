@@ -111,7 +111,7 @@
     inset: 0;
     display: flex;
     flex-direction: column;
-    font-family: 'Manrope', sans-serif;
+    font-family: var(--vscode-font-family, 'Manrope', sans-serif);
     color: var(--text);
   }
   .toolbar {
@@ -135,7 +135,7 @@
   }
   .toolbar input:focus { border-color: var(--accent); }
   .toolbar .count {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     font-size: 11px;
     color: var(--muted);
   }
@@ -187,7 +187,7 @@
   }
   .row .num {
     text-align: right;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     font-size: 11px;
     color: var(--muted);
   }

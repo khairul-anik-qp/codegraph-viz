@@ -1,3 +1,10 @@
+/*
+ * Standalone (CLI-opened HTML, plain browser) fallback palette. Inside the
+ * VS Code webview these are all overridden by the --vscode-* variables the
+ * host injects on <body> -- see the `var(--vscode-x, fallback)` uses below --
+ * so the panel tracks the user's actual editor theme (and its live switches)
+ * instead of carrying its own fixed light/dark scheme.
+ */
 :root {
   --bg: #f3f2f8;
   --surface: #ffffff;
@@ -44,17 +51,40 @@
   --focus: #8b93ff;
 }
 
+/* Inside a VS Code webview, remap every chrome token onto the live editor
+   theme. `var(--vscode-x, ...)` falls back to the standalone value above when
+   --vscode-x isn't defined (plain browser), and resolves to the real theme
+   color when it is (webview) -- no JS or extra selectors needed either way. */
+body.vscode-light, body.vscode-high-contrast-light { color-scheme: light; }
+body.vscode-dark, body.vscode-high-contrast { color-scheme: dark; }
+@media (prefers-color-scheme: dark) { body:not(.vscode-light):not(.vscode-dark):not(.vscode-high-contrast):not(.vscode-high-contrast-light):not([data-theme="light"]) { color-scheme: dark; } }
+body[data-theme="dark"] { color-scheme: dark; }
+
+body.vscode-light, body.vscode-dark, body.vscode-high-contrast, body.vscode-high-contrast-light {
+  --bg: var(--vscode-editor-background, var(--bg));
+  --surface: var(--vscode-sideBar-background, var(--surface));
+  --surface-2: var(--vscode-list-hoverBackground, var(--surface-2));
+  --border: var(--vscode-panel-border, var(--vscode-widget-border, var(--border)));
+  --text: var(--vscode-editor-foreground, var(--vscode-foreground, var(--text)));
+  --muted: var(--vscode-descriptionForeground, var(--muted));
+  --accent: var(--vscode-textLink-foreground, var(--accent));
+  --accent-soft: color-mix(in srgb, var(--accent) 18%, var(--bg));
+  --imports: var(--accent);
+  --danger: var(--vscode-errorForeground, var(--danger));
+  --focus: var(--vscode-focusBorder, var(--accent));
+}
+
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Manrope', -apple-system, 'Segoe UI', sans-serif;
+  font-family: var(--vscode-font-family, 'Manrope', -apple-system, 'Segoe UI', sans-serif);
   overflow: hidden;
 }
 #app { height: 100vh; display: flex; flex-direction: column; }
 
-.mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; }
+.mono { font-family: var(--vscode-editor-font-family, 'JetBrains Mono', ui-monospace, Menlo, monospace); }
 
 header {
   display: flex;
@@ -69,12 +99,12 @@ header {
 header h1 { font-size: 15px; font-weight: 800; letter-spacing: 0.01em; margin: 0; }
 header h1 span { color: var(--muted); font-weight: 600; }
 .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
-.breadcrumb .crumb { padding: 3px 9px; border-radius: 6px; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 12px; background: none; border: none; color: inherit; }
+.breadcrumb .crumb { padding: 3px 9px; border-radius: 6px; cursor: pointer; font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); font-size: 12px; background: none; border: none; color: inherit; }
 .breadcrumb .crumb.current { color: var(--text); background: var(--surface-2); cursor: default; }
 .breadcrumb .crumb:not(.current):hover { background: var(--surface-2); color: var(--text); }
 .breadcrumb .sep { color: var(--border); }
 header .spacer { flex: 1; }
-header .stats { display: flex; gap: 16px; font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+header .stats { display: flex; gap: 16px; font-size: 12px; color: var(--muted); font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); }
 header .stats b { color: var(--text); font-weight: 700; }
 
 .body-row { flex: 1; display: flex; min-height: 0; overflow: hidden; }
@@ -108,16 +138,15 @@ input[type="text"] {
   border-radius: 8px;
   padding: 8px 10px;
   font-size: 13px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
 }
 input[type="text"]:focus, button:focus-visible, .crumb:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 1px;
 }
-.search-results { margin-top: 6px; max-height: 160px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
 .search-hit {
   font-size: 12px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
   padding: 5px 7px;
   border-radius: 6px;
   cursor: pointer;
@@ -145,7 +174,7 @@ input[type="text"]:focus, button:focus-visible, .crumb:focus-visible {
   text-align: left;
 }
 .swatch { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; display: inline-block; }
-.legend-item .count { margin-left: auto; color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+.legend-item .count { margin-left: auto; color: var(--muted); font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); font-size: 11px; }
 
 .seg { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
 .seg button {
@@ -158,7 +187,7 @@ input[type="text"]:focus, button:focus-visible, .crumb:focus-visible {
   font-weight: 600;
   cursor: pointer;
   border-right: 1px solid var(--border);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
 }
 .seg button:last-child { border-right: none; }
 .seg button.active { background: var(--accent); color: white; }
@@ -181,7 +210,7 @@ input[type="text"]:focus, button:focus-visible, .crumb:focus-visible {
   font-size: 12px;
 }
 .isolate-banner.active { display: flex; }
-.isolate-banner b { font-family: 'JetBrains Mono', monospace; }
+.isolate-banner b { font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); }
 .isolate-banner .clear-x { margin-left: auto; cursor: pointer; color: var(--muted); font-weight: 700; padding: 0 3px; background: none; border: none; }
 .isolate-banner .clear-x:hover { color: var(--danger); }
 
@@ -234,19 +263,19 @@ main {
 }
 #detail-panel .close-btn { float: right; cursor: pointer; color: var(--muted); font-size: 18px; line-height: 1; background: none; border: none; }
 #detail-panel .close-btn:hover { color: var(--text); }
-#detail-panel h2 { font-size: 14px; font-family: 'JetBrains Mono', monospace; word-break: break-word; margin: 4px 0 2px 0; padding-right: 20px; }
+#detail-panel h2 { font-size: 14px; font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); word-break: break-word; margin: 4px 0 2px 0; padding-right: 20px; }
 #detail-panel .path-pkg { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; overflow-wrap: anywhere; }
 .kv-grid { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; font-size: 12.5px; margin-bottom: 18px; }
 .kv-grid .k { color: var(--muted); }
-.kv-grid .v { font-family: 'JetBrains Mono', monospace; text-align: right; }
+.kv-grid .v { font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); text-align: right; }
 .sym-group { margin-bottom: 12px; }
 .sym-group-title { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 4px; }
-.sym-row { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; font-family: 'JetBrains Mono', monospace; padding: 3px 0; border-bottom: 1px dashed var(--border); }
+.sym-row { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); padding: 3px 0; border-bottom: 1px dashed var(--border); }
 .sym-row .ln { color: var(--muted); flex: 0 0 auto; }
 .sym-row .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sym-row.exported .nm { color: var(--accent); font-weight: 700; }
 
-.rel-row { display: flex; align-items: center; gap: 8px; font-size: 12px; font-family: 'JetBrains Mono', monospace; padding: 5px 4px; border-radius: 6px; cursor: pointer; background: none; border: none; width: 100%; text-align: left; }
+.rel-row { display: flex; align-items: center; gap: 8px; font-size: 12px; font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); padding: 5px 4px; border-radius: 6px; cursor: pointer; background: none; border: none; color: inherit; width: 100%; text-align: left; }
 .rel-row:hover { background: var(--accent-soft); }
 .rel-row .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rel-row .w { color: var(--muted); flex: 0 0 auto; }

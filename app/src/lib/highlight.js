@@ -63,3 +63,18 @@ export function highlightLine(text, language) {
     return escapeHtml(text);
   }
 }
+
+// Highlights a full multi-line snippet as one block (unlike highlightLine,
+// preserves hljs's cross-line grammar state — correct coloring for
+// constructs spanning lines, e.g. multi-line strings/comments). Use this
+// whenever the snippet is rendered as a single <pre>/{@html} block rather
+// than split into per-line DOM nodes.
+export function highlightBlock(text, language) {
+  const lang = hljsLang(language);
+  if (!lang) return escapeHtml(text);
+  try {
+    return hljs.highlight(text, { language: lang, ignoreIllegals: true }).value;
+  } catch {
+    return escapeHtml(text);
+  }
+}

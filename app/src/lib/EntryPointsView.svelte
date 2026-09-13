@@ -101,7 +101,7 @@
     inset: 0;
     display: flex;
     flex-direction: column;
-    font-family: 'Manrope', sans-serif;
+    font-family: var(--vscode-font-family, 'Manrope', sans-serif);
     color: var(--text);
   }
   .head {
@@ -122,7 +122,7 @@
   .kind-mini-btn {
     background: var(--surface-2); color: var(--muted); border: 1px solid var(--border);
     border-radius: 12px; padding: 2px 8px; font-size: 10px;
-    font-family: 'JetBrains Mono', monospace; cursor: pointer;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); cursor: pointer;
   }
   .kind-mini-btn:hover { color: var(--text); border-color: var(--accent); }
   .kind-mini-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
@@ -139,22 +139,22 @@
     gap: 4px 12px;
   }
   .row-main { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-  .row-main .name { background: none; border: none; padding: 0; cursor: pointer; color: var(--accent); font-weight: 700; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+  .row-main .name { background: none; border: none; padding: 0; cursor: pointer; color: var(--accent); font-weight: 700; font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); font-size: 13px; }
   .row-main .name:hover { text-decoration: underline; }
-  .row-main .kind { color: var(--muted); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; font-family: 'JetBrains Mono', monospace; }
+  .row-main .kind { color: var(--muted); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); }
   .row-main .reason { color: var(--muted); font-size: 11px; font-style: italic; }
-  .row-main .badge { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; padding: 1px 6px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
+  .row-main .badge { font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); font-size: 9.5px; padding: 1px 6px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
   .row-main .badge.exp { background: rgba(63, 167, 127, 0.18); color: #3fa77f; }
   .row-main .badge.cx { background: rgba(201, 79, 124, 0.18); color: #c94f7c; }
   .row-meta { display: flex; gap: 12px; align-items: baseline; grid-column: 1; font-size: 11px; color: var(--muted); }
-  .row-meta .pkg { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 700; }
-  .row-meta .file { font-family: 'JetBrains Mono', monospace; }
+  .row-meta .pkg { font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); font-size: 11.5px; font-weight: 700; }
+  .row-meta .file { font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); }
   .row-meta .file .line { color: var(--accent); }
   .row-actions { display: flex; gap: 4px; grid-row: 1 / span 2; grid-column: 2; align-self: center; }
   .row-btn {
     background: var(--surface-2); color: var(--muted); border: 1px solid var(--border);
     border-radius: 4px; padding: 3px 8px; font-size: 10px;
-    font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); text-transform: uppercase;
     letter-spacing: 0.04em; cursor: pointer;
   }
   .row-btn:hover { color: var(--accent); border-color: var(--accent); }

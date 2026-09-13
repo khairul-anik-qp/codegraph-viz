@@ -72,7 +72,7 @@
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 4px 10px;
-    font-family: 'Manrope', sans-serif;
+    font-family: var(--vscode-font-family, 'Manrope', sans-serif);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;

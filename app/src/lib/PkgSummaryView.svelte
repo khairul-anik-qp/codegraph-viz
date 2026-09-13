@@ -77,7 +77,7 @@
     position: absolute;
     inset: 0;
     overflow-y: auto;
-    font-family: 'Manrope', sans-serif;
+    font-family: var(--vscode-font-family, 'Manrope', sans-serif);
     color: var(--text);
   }
   .head {
@@ -119,13 +119,13 @@
     border-bottom: 1px solid var(--border);
   }
   .kv .k { color: var(--muted); text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.04em; }
-  .kv .v { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; text-align: right; }
+  .kv .v { font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); font-size: 12.5px; text-align: right; }
   .section { padding: 10px 14px; border-bottom: 1px solid var(--border); }
   .section:last-child { border-bottom: none; }
   .section-title { color: var(--muted); text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.04em; margin-bottom: 6px; font-weight: 700; }
   .lang-row { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; }
-  .lang-name { font-family: 'JetBrains Mono', monospace; }
-  .lang-count { font-family: 'JetBrains Mono', monospace; color: var(--muted); font-size: 11px; }
+  .lang-name { font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); }
+  .lang-count { font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); color: var(--muted); font-size: 11px; }
   .muted { color: var(--muted); font-size: 11px; }
   .hub-row {
     display: grid;
@@ -142,7 +142,7 @@
     font-size: 12px;
   }
   .hub-row:hover { color: var(--accent); }
-  .hub-name { font-family: 'JetBrains Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .hub-kind { color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; }
-  .hub-reach { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--accent); text-align: right; font-weight: 700; }
+  .hub-name { font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hub-kind { color: var(--muted); font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .hub-reach { font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); font-size: 11.5px; color: var(--accent); text-align: right; font-weight: 700; }
 </style>

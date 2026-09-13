@@ -105,7 +105,7 @@
     inset: 0;
     display: flex;
     flex-direction: column;
-    font-family: 'Manrope', sans-serif;
+    font-family: var(--vscode-font-family, 'Manrope', sans-serif);
     color: var(--text);
   }
   .head {
@@ -138,7 +138,7 @@
   }
   .tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
   .tab-count {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     font-size: 10.5px;
     color: var(--muted);
     margin-left: 3px;
@@ -159,12 +159,12 @@
   .pkg-dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
   .name { font-size: 12.5px; font-weight: 700; color: var(--text); }
   .kind {
-    color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--muted); font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); font-size: 10px;
     text-transform: uppercase; letter-spacing: 0.04em;
   }
   .count {
     margin-left: auto;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     font-size: 11px;
     color: var(--accent);
     font-weight: 700;
@@ -179,10 +179,10 @@
   }
   .child-row:hover { background: var(--accent-soft); }
   .via {
-    color: var(--muted); font-size: 10px; font-family: 'JetBrains Mono', monospace;
+    color: var(--muted); font-size: 10px; font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     text-transform: uppercase; letter-spacing: 0.04em; width: 62px; flex: 0 0 auto;
   }
   .child-name { color: var(--text); }
-  .site-count { margin-left: auto; color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 10.5px; }
+  .site-count { margin-left: auto; color: var(--muted); font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); font-size: 10.5px; }
   .empty { padding: 30px; text-align: center; color: var(--muted); font-size: 13px; }
 </style>

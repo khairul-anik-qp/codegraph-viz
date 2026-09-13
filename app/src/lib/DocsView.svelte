@@ -107,7 +107,7 @@
   .docs {
     position: absolute; inset: 0;
     display: flex; flex-direction: column;
-    font-family: 'Manrope', sans-serif;
+    font-family: var(--vscode-font-family, 'Manrope', sans-serif);
     color: var(--text);
   }
   .head {
@@ -118,7 +118,7 @@
   }
   .head h1 { margin: 0; font-size: 18px; }
   .head .sub { margin: 4px 0 0 0; color: var(--muted); font-size: 12px; line-height: 1.4; max-width: 640px; }
-  .head .sub b { color: var(--text); font-family: 'JetBrains Mono', monospace; }
+  .head .sub b { color: var(--text); font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); }
   .head input {
     background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
     border-radius: 6px; padding: 6px 10px;
@@ -174,7 +174,7 @@
   }
   .undoc-row:hover { background: var(--accent-soft); }
   .undoc-row .nm { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .undoc-row .kind { color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; }
+  .undoc-row .kind { color: var(--muted); font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); font-size: 10px; text-transform: uppercase; }
   .undoc-row .file { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .undoc-more { padding: 4px 6px; color: var(--muted); font-size: 11px; }
   .empty { padding: 30px; text-align: center; color: var(--muted); font-size: 13px; }

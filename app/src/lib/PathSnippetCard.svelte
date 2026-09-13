@@ -152,7 +152,7 @@
   .snippet-card.root .snippet-card-head { background: var(--accent-soft); }
   .snippet-card-head:hover { background: var(--accent-soft); }
   .snippet-idx {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     font-size: 9.5px;
     color: var(--muted);
     min-width: 14px;
@@ -167,7 +167,7 @@
   }
 
   .snippet-code {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     font-size: 10.5px;
     line-height: 1.5;
     background: var(--surface);

@@ -115,7 +115,7 @@
     inset: 0;
     display: flex;
     flex-direction: column;
-    font-family: 'Manrope', sans-serif;
+    font-family: var(--vscode-font-family, 'Manrope', sans-serif);
     color: var(--text);
   }
   .head {
@@ -137,7 +137,7 @@
   .method-mini-btn {
     background: var(--surface-2); color: var(--muted); border: 1px solid var(--border);
     border-radius: 12px; padding: 2px 8px; font-size: 10px;
-    font-family: 'JetBrains Mono', monospace; font-weight: 700; cursor: pointer;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); font-weight: 700; cursor: pointer;
   }
   .method-mini-btn:hover { color: var(--text); }
   .method-mini-btn.active { color: white; }
@@ -155,7 +155,7 @@
   .controller-count {
     margin-left: auto;
     color: var(--muted);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     font-size: 11px;
   }
   .route-row {

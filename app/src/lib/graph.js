@@ -37,16 +37,22 @@ export function featureGroup(filePath) {
  * DATA shape (produced by generate.mjs):
  *   packages: [name, fileCount, symbolCount][]
  *   packageEdges: [srcPkgIdx, tgtPkgIdx, importWeight, callWeight][]
- *   files: [path, pkgIdx, language, nodeCount, modifiedAt, indexedAt][]
+ *   files: [path, pkgIdx, language, nodeCount, modifiedAt, indexedAt, errors][]
  *     (modifiedAt/indexedAt are epoch ms; modifiedAt > indexedAt means the
  *     source changed after this file was last indexed — the graph may be
- *     stale for it)
+ *     stale for it; errors is whatever CodeGraph's indexer recorded for this
+ *     file, e.g. an unrecoverable parse error — [] when clean)
  *   fileEdges: [srcFileIdx, tgtFileIdx, kindCode(0=imports,1=calls), weight][]
  *   symbols: [name, kind, startLine, isExported, fileIdx, snippet, doc,
- *     signature, returnType, visibility, isAsync, isStatic][] (global id =
- *     array index; doc = docstring, '' if none; signature/returnType/
- *     visibility are CodeGraph's own parsed fields — '' when the language
- *     doesn't carry one — isAsync/isStatic are 0|1)
+ *     signature, returnType, visibility, isAsync, isStatic, qualifiedName,
+ *     isAbstract, decorators, typeParameters][] (global id = array index;
+ *     doc = docstring, '' if none; signature/returnType/visibility/
+ *     qualifiedName/decorators/typeParameters are CodeGraph's own parsed
+ *     fields — '' or [] when the language doesn't carry one; qualifiedName
+ *     is '' when identical to name; isAsync/isStatic/isAbstract are 0|1)
+ *   projectMetadata: {[key]: value} — free-form bag CodeGraph's indexer
+ *     writes about itself (index_state, tool/extraction versions, files
+ *     discovered/accounted for, etc)
  *   fileSymbolIds: per-file-index array of global symbol ids belonging to that file
  *   symbolEdges: [srcSymId, tgtSymId, weight, callLines][] (calls only;
  *     callLines is the sorted list of absolute source-file line numbers

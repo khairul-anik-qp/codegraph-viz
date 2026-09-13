@@ -117,13 +117,6 @@ export const packageFilter = writable(null);
 export const focusRequest = writable(null);
 
 // ---------- search filters ----------
-// When true, the sidebar symbol-search box also matches against each symbol's
-// source snippet (function body, class declaration, etc) — not just the name.
-// Lets you search by code content, e.g. "setInterval" or "try {" → find every
-// function that contains it. When 'regex', the query is treated as a regex
-// matched against name + signature + docstring + snippet.
-export const searchMode = writable('names'); // 'names' | 'code' | 'regex'
-
 // A Set of symbol-kind names (e.g. 'function', 'method', 'class') to keep
 // visible across the app — null means "all kinds". Used by sidebar search
 // results, the all-flows view, and the flow diagram to scope what shows up.

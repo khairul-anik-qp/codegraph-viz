@@ -17,6 +17,7 @@
   } from "./stores.js";
   import { jumpToSymbol, recomputeAllFlows, openFlow } from "./actions.js";
   import { pkgColor, displayName, findEntryPathsToSymbol } from "./graph.js";
+  import { highlightBlock } from "./highlight.js";
   import PathSnippetCard from "./PathSnippetCard.svelte";
   import PathInspector from "./PathInspector.svelte";
 
@@ -386,7 +387,7 @@
                       <div class="snippet-pane-head">
                         root node source &middot; <span class="mono">{rootSym[0]}</span>
                       </div>
-                      <pre class="snippet-pre single">{snippetFor(rootId)}</pre>
+                      <pre class="snippet-pre single">{@html highlightBlock(snippetFor(rootId), rootFile[2])}</pre>
                     </div>
                   {/if}
                 {/each}
@@ -415,7 +416,7 @@
     inset: 0;
     overflow-y: auto;
     padding: 16px 20px 32px;
-    font-family: "Manrope", sans-serif;
+    font-family: var(--vscode-font-family, "Manrope", sans-serif);
     color: var(--text);
   }
   .root-banner {
@@ -442,7 +443,7 @@
     letter-spacing: 0.05em;
   }
   .root-name .mono {
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
     font-weight: 700;
     font-size: 16px;
   }
@@ -464,7 +465,7 @@
     cursor: pointer;
     color: var(--accent);
     font-weight: 600;
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
   }
   .file-link:hover,
   .single-flow-link:hover {
@@ -496,7 +497,7 @@
   .ctrl-label b {
     color: var(--text);
     font-weight: 700;
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
   }
 
   section {
@@ -519,7 +520,7 @@
   .count {
     font-size: 12px;
     color: var(--muted);
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
   }
   .trunc {
     color: #c94f7c;
@@ -551,12 +552,12 @@
   .pkg-group-head .pkg-name {
     color: var(--text);
     font-weight: 700;
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
   }
   .pkg-group-head .pkg-count {
     margin-left: auto;
     color: var(--muted);
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
   }
 
   .path-row {
@@ -576,7 +577,7 @@
     border: none;
     color: var(--muted);
     cursor: pointer;
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
     font-size: 12px;
     padding: 0 2px;
     transition: transform 0.15s ease;
@@ -590,7 +591,7 @@
   }
   .len-badge {
     flex: 0 0 auto;
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
     font-size: 10px;
     color: var(--muted);
     background: var(--surface-2);
@@ -599,7 +600,7 @@
   }
   .cycle-badge {
     flex: 0 0 auto;
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
     font-size: 10px;
     color: #c9a13f;
     background: rgba(201, 161, 63, 0.12);
@@ -626,7 +627,7 @@
     color: var(--text);
     border-radius: 5px;
     padding: 3px 8px;
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
     font-size: 11.5px;
     cursor: pointer;
     flex: 0 0 auto;
@@ -649,7 +650,7 @@
   }
   .chev {
     color: var(--muted);
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
     font-size: 11px;
     flex: 0 0 auto;
   }
@@ -661,7 +662,7 @@
     color: var(--muted);
     border-radius: 4px;
     padding: 2px 7px;
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -703,7 +704,7 @@
   .snippet-pre {
     margin: 0;
     padding: 8px 10px;
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
     font-size: 10.5px;
     line-height: 1.4;
     color: var(--text);
@@ -716,6 +717,25 @@
   .snippet-pre.single {
     white-space: pre-wrap;
   }
+  /* highlight.js token colors, mapped onto our theme tokens (see
+     PathSnippetCard.svelte for the same mapping). */
+  .snippet-pre :global(.hljs-keyword),
+  .snippet-pre :global(.hljs-operator) { color: var(--accent); }
+  .snippet-pre :global(.hljs-string),
+  .snippet-pre :global(.hljs-template-string),
+  .snippet-pre :global(.hljs-regexp) { color: var(--calls); }
+  .snippet-pre :global(.hljs-number),
+  .snippet-pre :global(.hljs-literal),
+  .snippet-pre :global(.hljs-built_in) { color: var(--imports); }
+  .snippet-pre :global(.hljs-comment),
+  .snippet-pre :global(.hljs-quote) { color: var(--muted); font-style: italic; }
+  .snippet-pre :global(.hljs-title),
+  .snippet-pre :global(.hljs-title.function_),
+  .snippet-pre :global(.hljs-title.class_) { color: var(--text); font-weight: 700; }
+  .snippet-pre :global(.hljs-tag),
+  .snippet-pre :global(.hljs-name),
+  .snippet-pre :global(.hljs-attr),
+  .snippet-pre :global(.hljs-attribute) { color: var(--danger); }
 
   .empty {
     padding: 16px;
@@ -802,7 +822,7 @@
     border: 1px solid var(--border);
     border-radius: 4px;
     padding: 3px 7px;
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
     font-size: 11px;
     color: var(--text);
   }
@@ -822,7 +842,7 @@
     color: var(--accent);
     border-radius: 4px;
     padding: 3px 9px;
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
     font-size: 10.5px;
     font-weight: 700;
     text-transform: uppercase;
@@ -865,7 +885,7 @@
   .started-by .count {
     font-size: 11px;
     color: var(--muted);
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
   }
   .entry-row {
     margin-bottom: 6px;
@@ -906,11 +926,11 @@
   .entry-file {
     font-size: 10.5px;
     color: var(--muted);
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
   }
   .entry-len {
     margin-left: auto;
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
     font-size: 10px;
     color: var(--muted);
   }
@@ -926,7 +946,7 @@
     color: var(--text);
     border-radius: 4px;
     padding: 2px 6px;
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
     font-size: 10.5px;
     cursor: pointer;
   }
@@ -985,7 +1005,7 @@
   }
   .named-arrow {
     color: var(--accent);
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
     font-weight: 700;
   }
   .named-name {
@@ -994,7 +1014,7 @@
   .named-count {
     margin-left: auto;
     color: var(--muted);
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
     font-size: 11px;
   }
   .named-unname {

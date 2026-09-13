@@ -41,6 +41,24 @@
 
   $: totalBroken = brokenByFile.reduce((n, g) => n + g.refs.length, 0);
 
+  // files[i][6] = errors CodeGraph's own indexer recorded for that file
+  // (parse errors it couldn't fully recover from) — [] when clean, absent
+  // (undefined) in older exports.
+  $: erroredFiles = (() => {
+    const out = [];
+    for (let i = 0; i < DATA.files.length; i++) {
+      const errs = DATA.files[i][6];
+      if (errs && errs.length) out.push({ idx: i, path: DATA.files[i][0], errors: errs });
+    }
+    return out.sort((a, b) => b.errors.length - a.errors.length);
+  })();
+  $: totalErrors = erroredFiles.reduce((n, f) => n + f.errors.length, 0);
+
+  // Free-form key/value bag CodeGraph's indexer writes about its own run —
+  // shown as-is rather than modeled field-by-field since the key set is
+  // CodeGraph's to evolve.
+  $: metadataEntries = Object.entries(DATA.projectMetadata || {});
+
   function formatAge(ms) {
     const days = ms / 86400000;
     if (days < 1) return '< 1 day';
@@ -53,9 +71,39 @@
   <div class="head">
     <h1>Index health</h1>
     <p class="sub">Whether this export can be trusted right now: files that changed since the last index build, and imports that never resolved to anything in the repo.</p>
+    {#if metadataEntries.length > 0}
+      <div class="meta-strip">
+        {#each metadataEntries as [k, v] (k)}
+          <span class="meta-item"><span class="meta-key">{k}</span><span class="meta-val mono">{v}</span></span>
+        {/each}
+      </div>
+    {/if}
   </div>
 
   <div class="rows">
+    <section>
+      <div class="section-head">
+        <h2>Files with index errors</h2>
+        <span class="count" class:zero={totalErrors === 0}>{totalErrors}</span>
+      </div>
+      {#if totalErrors === 0}
+        <div class="ok">None — CodeGraph indexed every file without recording an error.</div>
+      {:else}
+        <p class="section-note">CodeGraph's own parser/extractor recorded these while indexing — usually a syntax error it couldn't fully recover from, so that file's symbols/edges may be incomplete.</p>
+        {#each erroredFiles as f (f.idx)}
+          <div class="broken-group">
+            <button class="broken-file" on:click={() => jumpToFile(f.idx)}>
+              <span class="mono path" title={f.path}>{displayName(f.path)}</span>
+              <span class="count-pill">{f.errors.length}</span>
+            </button>
+            {#each f.errors as e}
+              <div class="broken-ref mono" style="padding-left:20px;">{typeof e === 'string' ? e : (e.message || JSON.stringify(e))}</div>
+            {/each}
+          </div>
+        {/each}
+      {/if}
+    </section>
+
     <section>
       <div class="section-head">
         <h2>Stale files</h2>
@@ -106,7 +154,7 @@
   .health {
     position: absolute; inset: 0;
     display: flex; flex-direction: column;
-    font-family: 'Manrope', sans-serif;
+    font-family: var(--vscode-font-family, 'Manrope', sans-serif);
     color: var(--text);
   }
   .head {
@@ -116,13 +164,17 @@
   }
   .head h1 { margin: 0; font-size: 18px; }
   .head .sub { margin: 4px 0 0 0; color: var(--muted); font-size: 12px; line-height: 1.4; max-width: 680px; }
+  .meta-strip { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; }
+  .meta-item { display: flex; align-items: baseline; gap: 5px; font-size: 11px; }
+  .meta-key { color: var(--muted); }
+  .meta-val { color: var(--text); font-size: 11px; }
 
   .rows { overflow-y: auto; flex: 1; padding: 14px 18px 30px; }
   section { margin-bottom: 26px; }
   .section-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
   .section-head h2 { margin: 0; font-size: 14px; }
   .section-head .count {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     font-size: 12px; font-weight: 700;
     color: #c94f7c;
     background: rgba(201, 79, 124, 0.12);
@@ -157,7 +209,7 @@
   .broken-file:hover { background: var(--accent-soft); }
   .count-pill {
     margin-left: auto;
-    font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); font-size: 10.5px; font-weight: 700;
     color: var(--muted);
   }
   .broken-ref {

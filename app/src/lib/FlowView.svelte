@@ -105,13 +105,13 @@
       .attr('stroke-width', d => d.depth === 0 ? 2 : 1);
 
     node.append('text').attr('x', 12).attr('y', 18)
-      .attr('font-family', "'JetBrains Mono', monospace").attr('font-size', 12).attr('font-weight', 700)
+      .attr('font-family', "var(--vscode-editor-font-family, 'JetBrains Mono', monospace)").attr('font-size', 12).attr('font-weight', 700)
       .attr('fill', d => d.data.cyclic ? 'var(--muted)' : 'var(--text)')
       .text(d => d.data.cyclic ? `${d.data.name} (recursive)` : d.data.name)
       .each(function (d) { truncateText(this, NODE_W - 20); });
 
     node.append('text').attr('x', 12).attr('y', 33)
-      .attr('font-family', "'Manrope', sans-serif").attr('font-size', 10).attr('fill', 'var(--muted)')
+      .attr('font-family', "var(--vscode-font-family, 'Manrope', sans-serif)").attr('font-size', 10).attr('fill', 'var(--muted)')
       .text(d => `${d.data.kind} · ${displayName(d.data.filePath)}`)
       .each(function (d) { truncateText(this, NODE_W - 20); });
 
@@ -119,7 +119,7 @@
       .append('text')
       .attr('x', curDir === 'in' ? 10 : NODE_W - 10).attr('y', NODE_H / 2 + 4)
       .attr('text-anchor', curDir === 'in' ? 'start' : 'end')
-      .attr('font-family', "'JetBrains Mono', monospace").attr('font-size', 10).attr('font-weight', 700)
+      .attr('font-family', "var(--vscode-editor-font-family, 'JetBrains Mono', monospace)").attr('font-size', 10).attr('font-weight', 700)
       .attr('fill', 'var(--accent)')
       .text(d => d.data.truncated ? (curDir === 'in' ? '← more' : 'more →') : `+${d.data.moreCount} more`);
 
@@ -202,7 +202,7 @@
       if (ghostSiblings.length > GHOST_SIB_CAP) {
         const x = startX + GHOST_SIB_CAP * (NODE_W + 14);
         ghosts.append('text').attr('x', x).attr('y', ySiblings + 20)
-          .attr('font-family', "'JetBrains Mono', monospace").attr('font-size', 11).attr('font-weight', 700)
+          .attr('font-family', "var(--vscode-editor-font-family, 'JetBrains Mono', monospace)").attr('font-size', 11).attr('font-weight', 700)
           .attr('fill', 'var(--accent)')
           .text(`+${ghostSiblings.length - GHOST_SIB_CAP} more`);
       }
@@ -224,12 +224,12 @@
       .attr('x', 0).attr('y', 0).attr('width', 3).attr('height', NODE_H - 8).attr('rx', 1)
       .attr('fill', 'var(--muted)');
     g.append('text').attr('x', 10).attr('y', 14)
-      .attr('font-family', "'JetBrains Mono', monospace").attr('font-size', 11).attr('font-weight', 600)
+      .attr('font-family', "var(--vscode-editor-font-family, 'JetBrains Mono', monospace)").attr('font-size', 11).attr('font-weight', 600)
       .attr('fill', 'var(--muted)')
       .text(name)
       .each(function () { truncateText(this, NODE_W - 16); });
     g.append('text').attr('x', 10).attr('y', 28)
-      .attr('font-family', "'Manrope', sans-serif").attr('font-size', 9).attr('fill', 'var(--muted)')
+      .attr('font-family', "var(--vscode-font-family, 'Manrope', sans-serif)").attr('font-size', 9).attr('fill', 'var(--muted)')
       .text(kind);
     g.on('click', (ev) => { ev.stopPropagation(); onClick(); });
   }

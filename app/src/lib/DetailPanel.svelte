@@ -1,7 +1,7 @@
 <script>
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
-  import { DATA, selectedFile, selectedSymbol, fileInAdj, fileOutAdj, symInAdj, symOutAdj } from './stores.js';
+  import { DATA, selectedFile, selectedSymbol, fileInAdj, fileOutAdj, symInAdj, symOutAdj, symUsageInAdj } from './stores.js';
   import { jumpToFile, jumpToSymbol, selectSymbol, backToFileOverview, openFlow } from './actions.js';
   import { pkgColor, shortPkg, displayName, complexity, findRelatedTests, transitiveReach, parseSignature, parseTypeBody } from './graph.js';
 
@@ -41,6 +41,9 @@
     : [];
   $: symComplexity = symbol ? complexity(symbol[5]) : 0;
   $: symReach = $selectedSymbol !== null ? transitiveReach($selectedSymbol, symInAdj) : 0;
+  $: isDead = $selectedSymbol !== null
+    && symCallers.length === 0
+    && (symUsageInAdj.get($selectedSymbol) || []).length === 0;
   // Walk inbound call edges, restricted to test-file symbols. Returns up
   // to 8 test symbols whose call chains reach this one.
   $: relatedTests = $selectedSymbol !== null
@@ -56,15 +59,19 @@
   $: isCallable = symbol && ['function', 'method', 'component', 'class', 'route'].includes(symbol[1]) && sig && sig.params.length > 0;
   $: docHtml = symbol && symbol[6] ? DOMPurify.sanitize(marked.parse(symbol[6], { breaks: true, gfm: true })) : '';
 
-  // CodeGraph's own parsed fields (symbol[7..11]) — authoritative where the
+  // CodeGraph's own parsed fields (symbol[7..15]) — authoritative where the
   // heuristic snippet-regex parse above (`sig`) can't be: real return type
-  // resolution, visibility, and static/async flags straight from the
-  // language's own AST, not a best-effort regex over the first line.
+  // resolution, visibility, and static/async/abstract flags straight from
+  // the language's own AST, not a best-effort regex over the first line.
   $: realSignature = symbol ? symbol[7] : '';
   $: realReturnType = symbol ? symbol[8] : '';
   $: visibility = symbol ? symbol[9] : '';
   $: isAsync = symbol ? (!!symbol[10] || (sig && sig.isAsync)) : false;
   $: isStatic = symbol ? !!symbol[11] : false;
+  $: qualifiedName = symbol ? symbol[12] : '';
+  $: isAbstract = symbol ? !!symbol[13] : false;
+  $: decorators = symbol ? (symbol[14] || []) : [];
+  $: typeParameters = symbol ? (symbol[15] || []) : [];
 
   // VS Code deep links — `vscode://file/<abs>:<line>:<col>` opens the file in
   // VS Code's currently-active window at the given position. projectRoot
@@ -98,9 +105,19 @@
   {#if symbol}
     <button class="close-btn" on:click={close}>✕</button>
     <button class="rel-row" style="padding:0; margin-bottom:10px; color:var(--muted);" on:click={backToFileOverview}>&larr; back to {displayName(symbolFile[0])}</button>
-    <h2 class="mono">{symbol[0]}</h2>
+    <h2 class="mono">
+      {symbol[0]}
+      {#if isDead}
+        <span class="dead-pill" title="No callers and no references/extends/implements/instantiates found — likely dead code">⚠ dead</span>
+      {/if}
+    </h2>
+    {#if qualifiedName}
+      <div class="qualified-name mono" title="Fully qualified name">{qualifiedName}</div>
+    {/if}
     <div class="path-pkg">
       {symbol[1]} &middot;
+      <span class="pkg-badge" style="color:{pkgColor(symbolFile[1])}" title="Package">{shortPkg(DATA.packages[symbolFile[1]][0])}</span>
+      &middot;
       <a class="path-link" href={vscodeUri(symbolFile[0], symbol[2])} title={projectRoot ? 'Open in VS Code' : 'No project root — links disabled'}>
         {symbolFile[0]}:{symbol[2]}
       </a>
@@ -109,11 +126,19 @@
       {/if}
     </div>
 
-    {#if visibility || isAsync || isStatic || realReturnType}
+    {#if decorators.length > 0}
+      <div class="decorator-row mono">
+        {#each decorators as d}<span class="decorator-chip">@{d}</span>{/each}
+      </div>
+    {/if}
+
+    {#if visibility || isAsync || isStatic || isAbstract || realReturnType || typeParameters.length > 0}
       <div class="flag-row">
         {#if visibility}<span class="flag-badge mono">{visibility}</span>{/if}
         {#if isStatic}<span class="flag-badge mono">static</span>{/if}
         {#if isAsync}<span class="flag-badge mono">async</span>{/if}
+        {#if isAbstract}<span class="flag-badge mono">abstract</span>{/if}
+        {#if typeParameters.length > 0}<span class="flag-badge mono" title="Type parameters">&lt;{typeParameters.join(', ')}&gt;</span>{/if}
         {#if realReturnType}<span class="flag-badge mono returns" title="Return type">→ {realReturnType}</span>{/if}
       </div>
     {/if}
@@ -343,6 +368,39 @@
   }
   .open-ide:hover { color: var(--accent); }
 
+  .qualified-name {
+    font-size: 11px;
+    color: var(--muted);
+    margin: -6px 0 6px 0;
+    overflow-wrap: anywhere;
+  }
+  .dead-pill {
+    font-size: 10.5px;
+    font-family: var(--vscode-font-family, "Manrope", sans-serif);
+    font-weight: 600;
+    color: #c94f7c;
+    background: rgba(201, 79, 124, 0.14);
+    border-radius: 4px;
+    padding: 2px 7px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .pkg-badge {
+    font-weight: 600;
+  }
+  .decorator-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 8px;
+  }
+  .decorator-chip {
+    font-size: 11px;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-radius: 4px;
+    padding: 1px 6px;
+  }
   .flag-row {
     display: flex;
     flex-wrap: wrap;
@@ -433,7 +491,7 @@
   .sym-row:hover { background: var(--accent-soft); }
   .complexity-pill {
     display: inline-block;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     font-weight: 700;
     font-size: 12px;
     padding: 2px 8px;
@@ -472,7 +530,7 @@
   .doc.markdown :global(ol) { margin: 4px 0 8px 0; padding-left: 20px; }
   .doc.markdown :global(li) { margin: 2px 0; }
   .doc.markdown :global(code) {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     font-size: 11px;
     background: rgba(91, 94, 214, 0.12);
     color: var(--accent);
@@ -480,7 +538,7 @@
     border-radius: 3px;
   }
   .doc.markdown :global(pre) {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     font-size: 11px;
     background: var(--surface-2);
     border: 1px solid var(--border);

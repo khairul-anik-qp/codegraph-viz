@@ -131,7 +131,7 @@
     inset: 0;
     display: flex;
     flex-direction: column;
-    font-family: 'Manrope', sans-serif;
+    font-family: var(--vscode-font-family, 'Manrope', sans-serif);
     color: var(--text);
   }
   .head {
@@ -153,7 +153,7 @@
   .kind-mini-btn {
     background: var(--surface-2); color: var(--muted); border: 1px solid var(--border);
     border-radius: 12px; padding: 2px 8px; font-size: 10px;
-    font-family: 'JetBrains Mono', monospace; cursor: pointer;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); cursor: pointer;
   }
   .kind-mini-btn:hover { color: var(--text); border-color: var(--accent); }
   .kind-mini-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
@@ -181,20 +181,20 @@
   }
   .row:hover { background: var(--accent-soft); }
   .row .rank {
-    color: var(--muted); font-family: 'JetBrains Mono', monospace;
+    color: var(--muted); font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     font-size: 11px; text-align: right;
   }
   .row .name {
     background: none; border: none; padding: 0; cursor: pointer;
-    color: var(--accent); font-weight: 700; font-family: 'JetBrains Mono', monospace;
+    color: var(--accent); font-weight: 700; font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     text-align: left;
   }
   .row .name:hover { text-decoration: underline; }
   .row .kind-h {
-    color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--muted); font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); font-size: 11px;
     text-transform: uppercase; letter-spacing: 0.04em;
   }
-  .row .num { text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .row .num { text-align: right; font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); font-size: 12px; }
   .row .num.cx-high { color: #c94f7c; font-weight: 700; }
   .row .num.cx-med { color: #c9a13f; font-weight: 700; }
   .row .dist {
@@ -211,7 +211,7 @@
   }
   .row .dist-pkg {
     flex: 1; min-width: 2px;
-    color: white; font-size: 9px; font-family: 'JetBrains Mono', monospace;
+    color: white; font-size: 9px; font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     display: flex; align-items: center; justify-content: center;
     overflow: hidden;
     position: relative; z-index: 1;
@@ -225,7 +225,7 @@
   .row-btn {
     background: var(--surface-2); color: var(--muted);
     border: 1px solid var(--border); border-radius: 4px;
-    padding: 2px 7px; font-size: 10px; font-family: 'JetBrains Mono', monospace;
+    padding: 2px 7px; font-size: 10px; font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
     text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer;
   }
   .row-btn:hover { color: var(--accent); border-color: var(--accent); }

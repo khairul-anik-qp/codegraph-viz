@@ -129,11 +129,12 @@
     inset: 0;
     display: flex;
     flex-direction: column;
-    font-family: "Manrope", sans-serif;
+    font-family: var(--vscode-font-family, "Manrope", sans-serif);
     color: var(--text);
   }
   .head {
     display: flex;
+    justify-content: space-between;
     align-items: flex-end;
     gap: 16px;
     padding: 14px 18px;
@@ -153,9 +154,9 @@
   }
   .head .sub b {
     color: var(--text);
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
   }
-  .head input {
+  .head input[type="text"] {
     background: var(--surface-2);
     border: 1px solid var(--border);
     color: var(--text);
@@ -166,14 +167,16 @@
     width: 240px;
     outline: none;
   }
-  .head input:focus {
+  .head input[type="text"]:focus {
     border-color: var(--accent);
   }
   .head-controls {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
     gap: 6px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   }
   .callable-toggle {
     display: flex;
@@ -239,7 +242,7 @@
     background: var(--accent-soft);
   }
   .row .sev {
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
     font-weight: 700;
     text-align: center;
   }
@@ -254,13 +257,13 @@
   }
   .row .kind {
     color: var(--muted);
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
   .row .pkg {
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
     font-size: 11.5px;
   }
   .row .file {
