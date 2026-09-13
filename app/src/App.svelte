@@ -3,7 +3,7 @@
   import { get } from 'svelte/store';
   import {
     view, currentPkg, flowRoot, allFlowsRoot, selectedSymbol, searchQuery,
-    packageFilter, symbolKindFilter, pathFinderOpen, shortcutsHelpOpen,
+    packageFilter, symbolKindFilter, pathFinderOpen, shortcutsHelpOpen, diffOverlayOn,
   } from './lib/stores.js';
   import { openFlow, openAllFlows, jumpToSymbol, goToPackagesView, openPackage } from './lib/actions.js';
   import { goBack } from './lib/hashState.js';
@@ -102,6 +102,11 @@
       if (key === 'e' && get(view) === 'flow') {
         ev.preventDefault();
         window.dispatchEvent(new CustomEvent('codegraph:export-flow'));
+        return;
+      }
+      if (key === 'd') {
+        ev.preventDefault();
+        diffOverlayOn.update(v => !v);
         return;
       }
       if (symId === null) return;

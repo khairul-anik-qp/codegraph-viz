@@ -1,7 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import * as d3 from 'd3';
-  import { DATA, symOutAdj, symInAdj, flowRoot, flowDirection, flowDepth, flowFeatureFilter, packageFilter, flowTrail, tooltipState } from './stores.js';
+  import { DATA, symOutAdj, symInAdj, flowRoot, flowDirection, flowDepth, flowFeatureFilter, packageFilter, flowTrail, tooltipState, diffOverlayOn, changedSymIds, blastRadiusSymIds } from './stores.js';
   import { flowDrillTo, flowJumpToTrail, openAllFlows } from './actions.js';
   import { buildFlowTree, pkgColor, displayName, featureGroup } from './graph.js';
   import ExportMenu from './ExportMenu.svelte';
@@ -49,6 +49,7 @@
   $: if (treeData && gEl && zoomBehavior) drawTree(treeData);
 
   function drawTree(data) {
+    const overlayOn = $diffOverlayOn;
     const hierarchy = d3.hierarchy(data, d => d.children);
     const layoutFn = d3.tree().nodeSize([NODE_H + V_GAP, NODE_W + H_GAP]);
     layoutFn(hierarchy);
@@ -109,7 +110,11 @@
 
     node.append('rect').attr('width', NODE_W).attr('height', NODE_H).attr('rx', 8)
       .attr('fill', d => d.depth === 0 ? 'var(--accent-soft)' : 'var(--surface)')
-      .attr('stroke', d => d.depth === 0 ? 'var(--accent)' : pkgColor(d.data.pkgIdx))
+      .attr('stroke', d => {
+        if (overlayOn && changedSymIds.has(d.data.id)) return '#c94f7c';
+        if (overlayOn && blastRadiusSymIds.has(d.data.id)) return '#c9a13f';
+        return d.depth === 0 ? 'var(--accent)' : pkgColor(d.data.pkgIdx);
+      })
       .attr('stroke-width', d => d.depth === 0 ? 2 : 1);
 
     node.append('text').attr('x', 12).attr('y', 18)

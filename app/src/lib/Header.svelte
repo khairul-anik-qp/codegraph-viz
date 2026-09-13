@@ -3,6 +3,7 @@
   import { goToPackagesView, flowJumpToTrail, openFlow } from './actions.js';
   import { goBack } from './hashState.js';
   import { shortPkg, displayName } from './graph.js';
+  import DiffToggle from './DiffToggle.svelte';
 
   $: files = DATA.files;
   $: currentPackageFileCount = $view === 'files' ? files.reduce((n, f) => f[1] === $currentPkg ? n + 1 : n, 0) : 0;
@@ -51,6 +52,7 @@
     {/if}
   </div>
   <div class="spacer"></div>
+  <DiffToggle />
   <button class="find-path-btn" title="Find path between two symbols (p)" on:click={() => pathFinderOpen.set(true)}>⇄ Find path</button>
   <div class="stats">
     {#if $view === 'packages'}

@@ -1,5 +1,5 @@
 import { writable, derived, get } from 'svelte/store';
-import { loadGraphData, buildAdjacency, findDeadCode, findCycles } from './graph.js';
+import { loadGraphData, buildAdjacency, findDeadCode, findCycles, blastRadius } from './graph.js';
 
 export const DATA = loadGraphData();
 
@@ -155,6 +155,17 @@ export const breadcrumb = derived([view, currentPkg], ([$view, $currentPkg]) => 
 export function clearIsolate() {
   isolate.set(null);
 }
+
+// ---------- git-diff impact overlay ----------
+// Only meaningful when the export was run with `--diff <ref>` (Task 7);
+// DATA.changedFileIdxs is [] otherwise, in which case both sets below are
+// empty and DiffToggle hides itself entirely (see DiffToggle.svelte).
+export const diffOverlayOn = writable(false);
+export const changedSymIds = new Set(
+  (DATA.changedFileIdxs || []).flatMap(fileIdx => DATA.fileSymbolIds[fileIdx] || [])
+);
+export const blastRadiusSymIds = blastRadius([...changedSymIds], symInAdj);
+export const hasDiffData = changedSymIds.size > 0;
 
 // Pre-computed at startup (call graph is static): dead-code list + Tarjan SCCs
 // for cycle-grouping in flow views. Both are O(N+E) on the symbol graph —
