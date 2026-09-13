@@ -3,7 +3,7 @@
   // truncation, lists each domain's detected entry points, and previews a
   // short linear call chain per entry point. Purely structural — no LLM, no
   // new export-time data. See docs/superpowers/specs/2026-09-13-domain-view-design.md.
-  import { DATA, symOutAdj, symInAdj, domainDepth } from './stores.js';
+  import { DATA, symOutAdj, symInAdj, domainDepth, symbolKindFilter } from './stores.js';
   import { selectSymbol, openFlow } from './actions.js';
   import { groupPackagesByDepth, previewChain, isEntryPoint, pkgColor, displayName } from './graph.js';
 
@@ -12,6 +12,11 @@
   let selectedDomain = null; // domain name string, or null
   let query = '';
   let kindOverride = null; // local kind-chip filter, same pattern as EntryPointsView
+
+  // Deepest folder-depth any package name actually has — increasing
+  // domainDepth past this can never change the grouping, so the depth
+  // stepper's '+' button disables here instead of clicking into no-op territory.
+  $: maxRealDepth = DATA.packages.reduce((m, [name]) => Math.max(m, name.split('/').length), 1);
 
   $: domains = [...groupPackagesByDepth(DATA.packages, $domainDepth).entries()]
     .map(([name, pkgIdxs]) => ({ name, pkgIdxs, pkgCount: pkgIdxs.length }))
@@ -26,14 +31,15 @@
 
   $: currentDomain = domains.find((d) => d.name === selectedDomain) || null;
 
-  $: entryPoints = (() => {
-    if (!currentDomain) return [];
-    const pkgSet = new Set(currentDomain.pkgIdxs);
+  // Entry-point detection is domain-independent (isEntryPoint only looks at
+  // the symbol itself), so it's computed once here rather than rescanning
+  // every symbol on each rail click; per-domain filtering below is just a
+  // pkgIdx-set membership check over this list.
+  $: allEntryPoints = (() => {
     const out = [];
     for (let i = 0; i < DATA.symbols.length; i++) {
       const s = DATA.symbols[i];
       const f = DATA.files[s[4]];
-      if (!pkgSet.has(f[1])) continue;
       const inDeg = (symInAdj.get(i) || []).length;
       if (!isEntryPoint(s, s[5] || '', inDeg)) continue;
       out.push({
@@ -41,18 +47,27 @@
         name: s[0],
         kind: s[1],
         filePath: f[0],
+        pkgIdx: f[1],
         startLine: s[2],
+        doc: s[6] || '',
         chain: previewChain(i, symOutAdj, MAX_HOPS),
       });
     }
-    out.sort((a, b) => a.name.localeCompare(b.name));
     return out;
   })();
 
+  $: entryPoints = currentDomain
+    ? (() => {
+        const pkgSet = new Set(currentDomain.pkgIdxs);
+        return allEntryPoints.filter((e) => pkgSet.has(e.pkgIdx)).sort((a, b) => a.name.localeCompare(b.name));
+      })()
+    : [];
+
   $: filtered = (() => {
     const q = query.trim().toLowerCase();
+    const kinds = kindOverride !== null ? kindOverride : $symbolKindFilter;
     return entryPoints.filter((e) => {
-      if (kindOverride && !kindOverride.has(e.kind)) return false;
+      if (kinds && !kinds.has(e.kind)) return false;
       if (q && !e.name.toLowerCase().includes(q) && !e.filePath.toLowerCase().includes(q)) return false;
       return true;
     });
@@ -96,7 +111,7 @@
       <div class="depth-stepper">
         <button class="step-btn" on:click={() => stepDepth(-1)} disabled={$domainDepth <= 1}>−</button>
         <span class="depth-val">depth {$domainDepth}</span>
-        <button class="step-btn" on:click={() => stepDepth(1)}>+</button>
+        <button class="step-btn" on:click={() => stepDepth(1)} disabled={$domainDepth >= maxRealDepth}>+</button>
       </div>
     </div>
     <div class="rail-list">
@@ -149,6 +164,7 @@
                 <span class="entry-kind">{e.kind}</span>
                 <span class="entry-file mono muted">{displayName(e.filePath)}<span class="line">:{e.startLine}</span></span>
               </button>
+              {#if e.doc}<p class="entry-doc">{e.doc}</p>{/if}
               <div class="chain">
                 {#each e.chain as symId, i (symId)}
                   {@const m = symbolMeta(symId)}
@@ -252,6 +268,7 @@
   .entry-kind { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
   .entry-file { font-size: 11px; margin-left: auto; }
   .entry-file .line { color: var(--accent); }
+  .entry-doc { margin: 0 0 8px 0; font-size: 11.5px; color: var(--muted); line-height: 1.4; }
 
   .chain { display: flex; flex-direction: column; }
   .chain-step {

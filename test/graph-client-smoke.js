@@ -42,6 +42,15 @@ const depth1 = groupPackagesByDepth(packages, 1);
 assert.deepEqual([...depth1.keys()].sort(), ['app', 'backend', 'root']);
 assert.deepEqual(depth1.get('app').sort((a, b) => a - b), [0, 1]);
 
+// groupPackagesByDepth: no packages — empty Map, not an error
+assert.deepEqual(groupPackagesByDepth([], 2), new Map());
+
+// groupPackagesByDepth: depth deeper than any package's real nesting — every
+// package groups under its own full name (truncation is a no-op past the end)
+const depth5 = groupPackagesByDepth(packages, 5);
+assert.deepEqual([...depth5.keys()].sort(), ['app/src/components', 'app/src/lib', 'backend/api', 'root']);
+assert.deepEqual(depth5.get('app/src/lib'), [0]);
+
 // previewChain: linear greedy walk along the first outgoing edge, using the same
 // 0 -> 1 -> 2 -> 3, 4 -> 1, 5 isolated fixture graph as above
 assert.deepEqual(previewChain(0, out, 4), [0, 1, 2, 3]);
@@ -52,6 +61,9 @@ assert.deepEqual(previewChain(3, out, 4), [3]); // leaf node
 // previewChain: cycle guard stops the walk even though the hop cap alone would too
 const { out: cyclicOut } = buildAdjacency([[10, 11, 1], [11, 10, 1]]);
 assert.deepEqual(previewChain(10, cyclicOut, 4), [10, 11]);
+
+// previewChain: default maxHops (4) applies when omitted
+assert.deepEqual(previewChain(0, out), [0, 1, 2, 3]);
 
 console.log('graph-client-smoke: OK');
 console.log('graph-client-smoke: OK (domain view helpers)');
