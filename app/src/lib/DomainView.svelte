@@ -60,8 +60,25 @@
 
   $: availableKinds = [...new Set(entryPoints.map((e) => e.kind))].sort();
 
+  // Clears the local entry-point filters. Called whenever the effective
+  // domain is about to change — either directly (clicking a different rail
+  // item) or indirectly (a depth change can shift which domain is
+  // "current" via the selectedDomain fallback above) — so stale filters
+  // from the previous domain never mask an entirely different domain's
+  // entry points.
+  function resetFilters() {
+    query = '';
+    kindOverride = null;
+  }
+
+  function selectDomain(name) {
+    selectedDomain = name;
+    resetFilters();
+  }
+
   function stepDepth(delta) {
     domainDepth.update((d) => Math.max(1, d + delta));
+    resetFilters();
   }
 
   // Resolves a symId in a preview chain to display metadata.
@@ -84,7 +101,7 @@
     </div>
     <div class="rail-list">
       {#each domains as d (d.name)}
-        <button class="rail-item" class:active={selectedDomain === d.name} on:click={() => (selectedDomain = d.name)}>
+        <button class="rail-item" class:active={selectedDomain === d.name} on:click={() => selectDomain(d.name)}>
           <span class="rail-name mono">{d.name}</span>
           <span class="rail-count">{d.pkgCount} pkg{d.pkgCount === 1 ? '' : 's'}</span>
         </button>
