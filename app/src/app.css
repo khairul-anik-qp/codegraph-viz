@@ -20,35 +20,37 @@
   --focus: #5b5ed6;
   font-variant-numeric: tabular-nums;
 }
+/* VS Code "Dark Modern" palette — editor bg #1e1e1e, sideBar bg #181818,
+   list hover #2a2d2e, panel border #2b2b2b, link/focus blue #3794ff. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #12131a;
-    --surface: #1b1d27;
-    --surface-2: #21232f;
-    --border: #30323f;
-    --text: #e8e9f0;
-    --muted: #9195a8;
-    --accent: #8b93ff;
-    --accent-soft: #2a2c47;
-    --imports: #8b93ff;
-    --calls: #f5a15d;
-    --danger: #ef7a8a;
-    --focus: #8b93ff;
+    --bg: #1e1e1e;
+    --surface: #181818;
+    --surface-2: #2d2d2d;
+    --border: #3c3c3c;
+    --text: #cccccc;
+    --muted: #9d9d9d;
+    --accent: #3794ff;
+    --accent-soft: #2a3a4d;
+    --imports: #3794ff;
+    --calls: #d19a66;
+    --danger: #f14c4c;
+    --focus: #3794ff;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #12131a;
-  --surface: #1b1d27;
-  --surface-2: #21232f;
-  --border: #30323f;
-  --text: #e8e9f0;
-  --muted: #9195a8;
-  --accent: #8b93ff;
-  --accent-soft: #2a2c47;
-  --imports: #8b93ff;
-  --calls: #f5a15d;
-  --danger: #ef7a8a;
-  --focus: #8b93ff;
+  --bg: #1e1e1e;
+  --surface: #181818;
+  --surface-2: #2d2d2d;
+  --border: #3c3c3c;
+  --text: #cccccc;
+  --muted: #9d9d9d;
+  --accent: #3794ff;
+  --accent-soft: #2a3a4d;
+  --imports: #3794ff;
+  --calls: #d19a66;
+  --danger: #f14c4c;
+  --focus: #3794ff;
 }
 
 /* Inside a VS Code webview, remap every chrome token onto the live editor
@@ -116,7 +118,7 @@ aside {
   min-height: 0;
   background: var(--surface);
   border-right: 1px solid var(--border);
-  padding: 16px;
+  padding: 16px 10px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -165,16 +167,20 @@ input[type="text"]:focus, button:focus-visible, .crumb:focus-visible {
   align-items: center;
   gap: 8px;
   font-size: 12.5px;
-  padding: 4px 0;
+  padding: 4px 6px;
+  margin: 0 -6px;
+  border-radius: 6px;
   cursor: pointer;
   color: var(--text);
   background: none;
   border: none;
-  width: 100%;
+  width: calc(100% + 12px);
   text-align: left;
 }
 .swatch { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; display: inline-block; }
 .legend-item .count { margin-left: auto; color: var(--muted); font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); font-size: 11px; }
+.legend-item.active { background: var(--accent-soft); font-weight: 600; }
+.legend-item.active .count { color: var(--text); }
 
 .seg { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
 .seg button {

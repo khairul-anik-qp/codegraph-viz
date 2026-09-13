@@ -11,7 +11,7 @@
   import {
     setIsolate, clearIsolate, openPackage, jumpToFile, jumpToSymbol,
     openFlow, openAllFlows, flowBack, setFlowDirection, setFlowFeatureFilter,
-    togglePackageFocus, clearPackageFocus,
+    togglePackageFocus, clearPackageFocus, toggleListView,
   } from './actions.js';
   import { pkgColor, shortPkg, displayName, featureGroup, isEntryPoint, groupPackagesByDepth } from './graph.js';
 
@@ -273,7 +273,7 @@
           class="legend-item dead-code-row"
           class:active={$view === 'deadCode'}
           title="Symbols with zero callers — likely dead code"
-          on:click={() => view.set($view === 'deadCode' ? 'packages' : 'deadCode')}
+          on:click={() => toggleListView('deadCode')}
         >
           <span class="swatch" style="background:#c94f7c"></span>
           <span>Dead code</span>
@@ -283,7 +283,7 @@
           class="legend-item"
           class:active={$view === 'hubs'}
           title="Top-N most-called functions — refactor targets"
-          on:click={() => view.set($view === 'hubs' ? 'packages' : 'hubs')}
+          on:click={() => toggleListView('hubs')}
         >
           <span class="swatch" style="background:var(--accent)"></span>
           <span>Hubs</span>
@@ -293,7 +293,7 @@
           class="legend-item"
           class:active={$view === 'entryPoints'}
           title="Exported zero-callers + framework entry markers"
-          on:click={() => view.set($view === 'entryPoints' ? 'packages' : 'entryPoints')}
+          on:click={() => toggleListView('entryPoints')}
         >
           <span class="swatch" style="background:#c9a13f"></span>
           <span>Entry points</span>
@@ -303,7 +303,7 @@
           class="legend-item"
           class:active={$view === 'pkgSummary'}
           title="Per-package aggregate stats and top hubs"
-          on:click={() => view.set($view === 'pkgSummary' ? 'packages' : 'pkgSummary')}
+          on:click={() => toggleListView('pkgSummary')}
         >
           <span class="swatch" style="background:#4a90d9"></span>
           <span>Pkg summary</span>
@@ -313,7 +313,7 @@
           class="legend-item"
           class:active={$view === 'routes'}
           title="Every REST/GraphQL/WebSocket route, grouped by controller"
-          on:click={() => view.set($view === 'routes' ? 'packages' : 'routes')}
+          on:click={() => toggleListView('routes')}
         >
           <span class="swatch" style="background:#3fa77f"></span>
           <span>API surface</span>
@@ -323,7 +323,7 @@
           class="legend-item"
           class:active={$view === 'structure'}
           title="Class inheritance (extends/implements) and object construction (new X())"
-          on:click={() => view.set($view === 'structure' ? 'packages' : 'structure')}
+          on:click={() => toggleListView('structure')}
         >
           <span class="swatch" style="background:#a367c9"></span>
           <span>Structure</span>
@@ -333,7 +333,7 @@
           class="legend-item"
           class:active={$view === 'docs'}
           title="Docstring coverage per package, worst first"
-          on:click={() => view.set($view === 'docs' ? 'packages' : 'docs')}
+          on:click={() => toggleListView('docs')}
         >
           <span class="swatch" style="background:#7d8590"></span>
           <span>Docs coverage</span>
@@ -343,7 +343,7 @@
           class="legend-item"
           class:active={$view === 'indexHealth'}
           title="Stale files and unresolved internal imports — is this export trustworthy?"
-          on:click={() => view.set($view === 'indexHealth' ? 'packages' : 'indexHealth')}
+          on:click={() => toggleListView('indexHealth')}
         >
           <span class="swatch" style="background:{indexHealthIssues > 0 ? '#c94f7c' : '#3fa77f'}"></span>
           <span>Index health</span>
@@ -353,7 +353,7 @@
           class="legend-item"
           class:active={$view === 'domains'}
           title="Business/feature domains grouped by folder depth, with entry points and call-chain previews"
-          on:click={() => view.set($view === 'domains' ? 'packages' : 'domains')}
+          on:click={() => toggleListView('domains')}
         >
           <span class="swatch" style="background:#5b5ed6"></span>
           <span>Domains</span>
@@ -683,6 +683,7 @@
     margin-top: 0;
   }
   .detail-mode-toggle {
+    flex-grow: 1;
     display: flex;
     gap: 2px;
     background: var(--surface-2);
@@ -756,5 +757,4 @@
   .kind-chip:hover { color: var(--text); border-color: var(--accent); }
   .kind-chip.active { background: var(--accent); color: white; border-color: var(--accent); }
   .kind-chip.clear { color: var(--muted); }
-  .dead-code-row { width: 100%; }
 </style>

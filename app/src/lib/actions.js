@@ -37,6 +37,14 @@ export function goToPackagesView() {
   selectedSymbol.set(null);
 }
 
+/** Toggles one of the sidebar's standalone list views (deadCode, hubs, etc.) on/off, clearing any
+ *  leftover symbol selection so DetailPanel doesn't stay open across the switch. */
+export function toggleListView(name) {
+  view.set(get(view) === name ? 'packages' : name);
+  selectedFile.set(null);
+  selectedSymbol.set(null);
+}
+
 // Switches to the file's package (if needed), selects the file + symbol so
 // DetailPanel shows them, and asks the file-list view to scroll the row
 // into view. Pass symId to land directly on a symbol instead of the file

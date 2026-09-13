@@ -1,7 +1,7 @@
 <script>
   // Top app bar: title, back button, breadcrumb trail for the active view, and
   // global stats/actions (diff toggle, path finder).
-  import { DATA, view, currentPkg, flowRoot, flowDirection, flowTrail, allFlowsRoot, pathFinderOpen } from './stores.js';
+  import { DATA, view, currentPkg, flowRoot, flowDirection, flowTrail, allFlowsRoot, pathFinderOpen, themeMode } from './stores.js';
   import { goToPackagesView, flowJumpToTrail, openFlow } from './actions.js';
   import { goBack } from './hashState.js';
   import { shortPkg, displayName } from './graph.js';
@@ -13,6 +13,11 @@
   // Only show Back on views that the user navigated *into* — 'packages' is
   // the home view, so there's nothing meaningful to go back to.
   $: showBack = $view !== 'packages';
+
+  const THEME_CYCLE = { system: 'light', light: 'dark', dark: 'system' };
+  const THEME_ICON = { system: '🖥', light: '☀', dark: '🌙' };
+  const THEME_LABEL = { system: 'Theme: system', light: 'Theme: light', dark: 'Theme: dark' };
+  function cycleTheme() { themeMode.set(THEME_CYCLE[$themeMode]); }
 </script>
 
 <header>
@@ -55,6 +60,7 @@
   </div>
   <div class="spacer"></div>
   <DiffToggle />
+  <button class="theme-btn" title="{THEME_LABEL[$themeMode]} (click to cycle)" on:click={cycleTheme}>{THEME_ICON[$themeMode]}</button>
   <button class="find-path-btn" title="Find path between two symbols (p)" on:click={() => pathFinderOpen.set(true)}>⇄ Find path</button>
   <div class="stats">
     {#if $view === 'packages'}
@@ -85,6 +91,18 @@
     transition: color 0.1s ease, border-color 0.1s ease;
   }
   .back-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  .theme-btn {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    margin-right: 12px;
+  }
+  .theme-btn:hover { border-color: var(--accent); }
 
   .find-path-btn {
     background: var(--surface-2);

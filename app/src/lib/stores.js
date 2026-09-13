@@ -78,6 +78,32 @@ function saveDetailMode(mode) {
 export const detailMode = writable(loadDetailMode());
 detailMode.subscribe(saveDetailMode);
 
+// ---------- theme ----------
+// 'system' follows prefers-color-scheme (and, inside the VS Code webview,
+// the host's live theme regardless of this setting); 'light'/'dark' pin an
+// explicit choice via the [data-theme] CSS override. Persisted globally,
+// same as detailMode — a reading preference, not project data.
+const THEME_MODE_KEY = 'codegraph-theme-mode';
+/** Reads the persisted theme preference, defaulting to 'system' when unset or unavailable. */
+function loadThemeMode() {
+  if (typeof localStorage === 'undefined') return 'system';
+  try { return localStorage.getItem(THEME_MODE_KEY) || 'system'; }
+  catch { return 'system'; }
+}
+/** Persists the theme preference so it survives page reloads. */
+function saveThemeMode(mode) {
+  if (typeof localStorage === 'undefined') return;
+  try { localStorage.setItem(THEME_MODE_KEY, mode); } catch { /* quota */ }
+}
+// Current theme preference ('system' | 'light' | 'dark'); persisted across reloads.
+export const themeMode = writable(loadThemeMode());
+themeMode.subscribe(saveThemeMode);
+themeMode.subscribe(mode => {
+  if (typeof document === 'undefined') return;
+  if (mode === 'system') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', mode);
+});
+
 /** Derives a stable string key identifying a specific call-graph path, for use in named-flow storage and lookup. */
 export function pathHash(path) {
   // Stable identifier for a path — join symIds with a separator that can't
