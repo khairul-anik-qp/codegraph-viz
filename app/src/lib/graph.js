@@ -94,6 +94,21 @@ export function filesInPkg(files, pkgIdx) {
   return arr;
 }
 
+// Groups package indices into coarse "domains" by truncating each package's
+// `/`-separated path to `depth` segments. E.g. at depth 2, `app/src/lib` and
+// `app/src/components` both truncate to `app/src` and group together. A
+// package with fewer than `depth` segments groups under its own full name
+// (truncation is a no-op once you run out of segments).
+export function groupPackagesByDepth(packages, depth) {
+  const groups = new Map();
+  packages.forEach(([name], i) => {
+    const prefix = name.split('/').slice(0, depth).join('/');
+    if (!groups.has(prefix)) groups.set(prefix, []);
+    groups.get(prefix).push(i);
+  });
+  return groups;
+}
+
 const FLOW_MAX_CHILDREN = 12;
 
 // Builds a single-flow tree rooted at symId, walking `adjacency` (symOutAdj
@@ -652,6 +667,29 @@ export function findRelatedTests(symId, symInAdj, files, symbols, maxDepth = 4) 
     }
   }
   return [...tests];
+}
+
+// A short, deliberately LINEAR (not branching) greedy walk from `rootId`:
+// repeatedly follows the FIRST outgoing edge in `symOutAdj.get(id)` (same
+// adjacency shape buildAdjacency produces), stopping at `maxHops` steps, at
+// a node with no outgoing edges, or upon revisiting an already-visited symId
+// (cycle guard — belt-and-suspenders alongside the hop cap, which alone
+// already bounds the walk). This is intentionally NOT buildFlowTree, which
+// produces a full branching tree — this produces one flat preview path.
+export function previewChain(rootId, symOutAdj, maxHops = 4) {
+  const chain = [rootId];
+  const visited = new Set([rootId]);
+  let current = rootId;
+  for (let i = 0; i < maxHops; i++) {
+    const edges = symOutAdj.get(current);
+    if (!edges || edges.length === 0) break;
+    const next = edges[0][0];
+    if (visited.has(next)) break;
+    chain.push(next);
+    visited.add(next);
+    current = next;
+  }
+  return chain;
 }
 
 // Heuristic entry-point detection. An entry point is something the
