@@ -63,7 +63,7 @@
               <button class="hub-row" on:click={() => jumpToSymbol(h.symId)}>
                 <span class="hub-name mono">{h.name}</span>
                 <span class="hub-kind">{h.kind}</span>
-                <span class="hub-reach" title="symbols that can reach this one">{h.reach}</span>
+                <span class="hub-reach" data-tip="symbols that can reach this one">{h.reach}</span>
               </button>
             {/each}
           </div>

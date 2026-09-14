@@ -100,10 +100,11 @@ header {
 }
 header h1 { font-size: 15px; font-weight: 800; letter-spacing: 0.01em; margin: 0; }
 header h1 span { color: var(--muted); font-weight: 600; }
-.breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); min-width: 0; overflow: hidden; white-space: nowrap; }
 .breadcrumb .crumb { padding: 3px 9px; border-radius: 6px; cursor: pointer; font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); font-size: 12px; background: none; border: none; color: inherit; }
 .breadcrumb .crumb.current { color: var(--text); background: var(--surface-2); cursor: default; }
-.breadcrumb .crumb:not(.current):hover { background: var(--surface-2); color: var(--text); }
+.breadcrumb .crumb:not(.current):not(.ellipsis):hover { background: var(--surface-2); color: var(--text); }
+.breadcrumb .crumb.ellipsis { cursor: help; color: var(--muted); }
 .breadcrumb .sep { color: var(--border); }
 header .spacer { flex: 1; }
 header .stats { display: flex; gap: 16px; font-size: 12px; color: var(--muted); font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); }
@@ -269,7 +270,7 @@ main {
 }
 #detail-panel .close-btn { float: right; cursor: pointer; color: var(--muted); font-size: 18px; line-height: 1; background: none; border: none; }
 #detail-panel .close-btn:hover { color: var(--text); }
-#detail-panel h2 { font-size: 14px; font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); word-break: break-word; margin: 4px 0 2px 0; padding-right: 20px; }
+#detail-panel h2 { font-size: 14px; font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); word-break: break-word; margin: 4px 0 2px 0; display: inline-flex; gap: 10px; align-items: baseline;}
 #detail-panel .path-pkg { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; overflow-wrap: anywhere; }
 .kv-grid { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; font-size: 12.5px; margin-bottom: 18px; }
 .kv-grid .k { color: var(--muted); }

@@ -10,13 +10,15 @@
   function close() { dispatch('close'); }
   // Closes the modal when Escape is pressed while it's open.
   function onKeydown(e) { if (e.key === 'Escape') close(); }
+  // Closes the modal only when the backdrop itself (not the dialog box) is clicked.
+  function onBackdropClick(e) { if (e.target === e.currentTarget) close(); }
 </script>
 
 <svelte:window on:keydown={open ? onKeydown : null} />
 
 {#if open}
-  <div class="modal-backdrop" on:click={close}>
-    <div class="modal-box" class:wide on:click|stopPropagation>
+  <div class="modal-backdrop" role="presentation" on:click={onBackdropClick} on:keydown={onKeydown}>
+    <div class="modal-box" class:wide role="dialog" aria-modal="true" aria-label={title}>
       <div class="modal-head">
         <h3>{title}</h3>
         <button class="modal-close" on:click={close}>✕</button>

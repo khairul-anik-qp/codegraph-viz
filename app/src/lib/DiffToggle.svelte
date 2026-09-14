@@ -6,7 +6,7 @@
   <button
     class="diff-toggle"
     class:active={$diffOverlayOn}
-    title="Toggle git-diff impact overlay (d)"
+    data-tip="Toggle git-diff impact overlay (d)"
     on:click={() => diffOverlayOn.update(v => !v)}
   >
     <span class="dot changed"></span>{changedSymIds.size} changed

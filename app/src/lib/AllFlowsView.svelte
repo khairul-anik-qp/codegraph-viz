@@ -144,23 +144,6 @@
     inspectedPath.set({ rootId, dir, path, name: getFlowName(rootId, path) });
   }
 
-  // Auto-derived default name for a path — what we'd suggest if the user
-  // hasn't named it. Concise: "rootName → firstCaller → lastLeaf" so the
-  // row is scannable without it being a wall of chips.
-  function suggestName(path) {
-    if (!path || path.length === 0) return "";
-    const last = path[path.length - 1];
-    const first = path[1] || path[0]; // skip the root when it's the first hop
-    const lastNm = DATA.symbols[last]?.[0] || "?";
-    if (first === path[0]) return lastNm;
-    const firstNm = DATA.symbols[first]?.[0] || "?";
-    return `${firstNm} → ${lastNm}`;
-  }
-  // Saves the user-entered name for a path on blur.
-  function onNameBlur(rootId, path, value) {
-    setFlowName(rootId, path, value);
-  }
-
   // Source snippet text for a symbol, or empty string if none captured.
   function snippetFor(symId) {
     const s = DATA.symbols[symId];
@@ -205,14 +188,14 @@
           <span class="mono">{rootSym[0]}</span>
         </div>
         <div class="root-meta">
-          in <button class="file-link mono" on:click={() => jumpToSymbol(rootId)} title={rootFile[0]}
+          in <button class="file-link mono" on:click={() => jumpToSymbol(rootId)} data-tip={rootFile[0]}
             >{displayName(rootFile[0])}</button
           >
           <span class="sep">·</span>
           <button
             class="single-flow-link"
             on:click={() => openFlow(rootId, "out")}
-            title="Open the single-flow d3 tree view instead">d3 flow →</button
+            data-tip="Open the single-flow d3 tree view instead">d3 flow →</button
           >
         </div>
       </div>
@@ -254,12 +237,12 @@
           <div class="named-list">
             {#each namedForRoot as n (n.hash)}
               <div class="named-row">
-                <button class="named-focus" on:click={() => focusPath(n.path, n.dir)} title="Focus this flow">
+                <button class="named-focus" on:click={() => focusPath(n.path, n.dir)} data-tip="Focus this flow">
                   <span class="named-arrow">{n.dir === "callers" ? "↑" : "↓"}</span>
                   <span class="named-name">{n.name}</span>
                   <span class="named-count">{n.path.length} nodes</span>
                 </button>
-                <button class="named-unname" on:click={() => setFlowName(rootId, n.path, "")} title="Unname">✕</button>
+                <button class="named-unname" on:click={() => setFlowName(rootId, n.path, "")} data-tip="Unname" aria-label="Unname this flow">✕</button>
               </div>
             {/each}
           </div>
@@ -272,7 +255,7 @@
             <h2>Started by entry points ({entryPaths.length})</h2>
             <span
               class="count"
-              title="Entry points (zero-callers exports + framework entry markers) that can reach this symbol"
+              data-tip="Entry points (zero-callers exports + framework entry markers) that can reach this symbol"
             >
               entry → … → {DATA.symbols[rootId]?.[0] || "root"}
             </span>
@@ -280,12 +263,12 @@
           {#each entryPaths as ep, i (ep.entryId + ":" + i)}
             <div class="entry-row">
               <div class="entry-row-head">
-                <button class="entry-name mono" on:click={() => jumpToSymbol(ep.entryId)} title={ep.entryFile}>
+                <button class="entry-name mono" on:click={() => jumpToSymbol(ep.entryId)} data-tip={ep.entryFile}>
                   {ep.entryName}
                 </button>
                 <span class="entry-kind">{ep.entryKind}</span>
-                <span class="entry-file" title={ep.entryFile}>· {displayName(ep.entryFile)}</span>
-                <span class="entry-len" title="chain length">{ep.length} hops</span>
+                <span class="entry-file" data-tip={ep.entryFile}>· {displayName(ep.entryFile)}</span>
+                <span class="entry-len" data-tip="chain length">{ep.length} hops</span>
               </div>
               <div class="entry-chain">
                 {#each ep.path as id, j (j + ":" + id + ":" + i)}
@@ -294,7 +277,7 @@
                     class="entry-chip"
                     class:origin={j === 0}
                     class:target={id === rootId}
-                    title={DATA.symbols[id]
+                    data-tip={DATA.symbols[id]
                       ? `${DATA.symbols[id][1]} · ${DATA.files[DATA.symbols[id][4]]?.[0] || ""}`
                       : ""}
                     on:click={() => jumpToSymbol(id)}>{DATA.symbols[id]?.[0] || "?"}</button
@@ -319,7 +302,7 @@
               ) === 1
                 ? ""
                 : "s"}
-              {#if $allFlowsTruncated[section.dir]}<span class="trunc" title="Hit max-paths cap; raise it to see more">
+              {#if $allFlowsTruncated[section.dir]}<span class="trunc" data-tip="Hit max-paths cap; raise it to see more">
                   · truncated</span
                 >{/if}
             </span>
@@ -333,17 +316,16 @@
                 </div>
                 {#each group.paths as path, i (section.label + ":" + group.name + ":" + i)}
                   {@const key = section.label + ":" + group.name + ":" + i}
-                  {@const savedName = getFlowName(rootId, path)}
                   <div class="path-row" style="--row-accent: {pkgColor(pkgOf(path[0]))}">
                     <button
                       class="expander"
                       class:open={expanded.has(key) || snippetPath === key}
                       on:click={() => toggleExpand(key)}
-                      title="Expand row">▸</button
+                      data-tip="Expand row">▸</button
                     >
-                    <span class="len-badge" title="path length">len {path.length}</span>
+                    <span class="len-badge" data-tip="path length">len {path.length}</span>
                     {#each pathCycles(path) as cyc (cyc)}
-                      <span class="cycle-badge" title="Path enters a call cycle">⟲ {cyc}</span>
+                      <span class="cycle-badge" data-tip="Path enters a call cycle">⟲ {cyc}</span>
                     {/each}
                     <div class="chips">
                       {#each section.dir === "callers" ? path.slice().reverse() : path as symId, j (j)}
@@ -352,32 +334,21 @@
                           class="chip"
                           class:root={symId === rootId}
                           class:dimmed={$packageFilter && !$packageFilter.has(pkgOf(symId))}
-                          title={symChipTitle(symId)}
+                          data-tip={symChipTitle(symId)}
                           on:click={() => jumpToSymbol(symId)}>{symChipLabel(symId)}</button
                         >
                       {/each}
                     </div>
-                    <input
-                      class="name-input"
-                      type="text"
-                      placeholder={savedName ? "" : suggestName(path)}
-                      value={savedName}
-                      on:blur={(e) => onNameBlur(rootId, path, e.target.value)}
-                      on:keydown={(e) => {
-                        if (e.key === "Enter") e.target.blur();
-                      }}
-                      title="Name this flow (Enter to save)"
-                    />
                     <button
                       class="focus-btn"
                       on:click={() => focusPath(path, section.dir)}
-                      title="View this flow in isolation">focus →</button
+                      data-tip="View this flow in isolation — name it there">focus →</button
                     >
                     <button
                       class="snippet-toggle"
                       class:on={snippetPath === key}
                       on:click={() => showSnippet(key)}
-                      title="Show source snippet for the root node">src</button
+                      data-tip="Show source snippet for the root node">src</button
                     >
                   </div>
                   {#if expanded.has(key)}
@@ -824,30 +795,9 @@
     transform: translateX(14px);
   }
 
-  /* Named flows — the per-row name input + focus button + the saved
-     panel at the top. flex-shrink:0 so they never get pushed off the
-     right when the chips area overflows. */
-  .name-input {
-    flex: 0 0 180px;
-    min-width: 120px;
-    max-width: 220px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 3px 7px;
-    font-family: var(--vscode-editor-font-family, "JetBrains Mono", monospace);
-    font-size: 11px;
-    color: var(--text);
-  }
-  .name-input::placeholder {
-    color: var(--muted);
-    font-style: italic;
-  }
-  .name-input:focus {
-    outline: none;
-    border-color: var(--accent);
-    background: var(--surface);
-  }
+  /* Focus button — flex-shrink:0 so it never gets pushed off the right
+     when the chips area overflows. Naming happens in the focused path
+     view (PathInspector), not in the list. */
   .focus-btn {
     flex: 0 0 auto;
     background: var(--accent-soft);

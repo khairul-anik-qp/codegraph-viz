@@ -40,7 +40,7 @@
 
 <div class="inspector">
   <div class="inspector-head">
-    <button class="back-btn" on:click={exitInspector} title="Back to all flows">← back to all flows</button>
+    <button class="back-btn" on:click={exitInspector} data-tip="Back to all flows">← back to all flows</button>
     <input
       class="inspector-title"
       type="text"
@@ -56,7 +56,7 @@
         {ins.dir === 'callers' ? '↑ callers' : '↓ callees'}
       </span>
       <span class="len-pill">len {ins.path.length}</span>
-      <button class="meta-btn" on:click={() => copyPathString(ins.path, ins.dir)} title="Copy path as `a → b → c`">copy</button>
+      <button class="meta-btn" on:click={() => copyPathString(ins.path, ins.dir)} data-tip="Copy path as `a → b → c`">copy</button>
     </div>
   </div>
   <div class="inspector-body">
@@ -66,15 +66,15 @@
       <div class="ins-card" class:root={symId === ins.rootId} style="--card-accent: {pkgColor(file[1])}">
         <div class="ins-card-head">
           <span class="ins-idx">{j}</span>
-          <button class="ins-name mono" on:click={() => jumpToSymbol(symId)} title={file[0]}>{s[0]}</button>
+          <button class="ins-name mono" on:click={() => jumpToSymbol(symId)} data-tip={file[0]}>{s[0]}</button>
           <span class="ins-kind">{s[1]}</span>
           <span class="ins-file mono">{displayName(file[0])}:{s[2]}</span>
-          <button class="ins-reroot" on:click={() => inspectorRerootAt(symId)} title="Re-root all-flows at this symbol">re-root ↗</button>
+          <button class="ins-reroot" on:click={() => inspectorRerootAt(symId)} data-tip="Re-root all-flows at this symbol">re-root ↗</button>
         </div>
         <pre class="ins-src mono">{@html s[5] ? highlightBlock(s[5], file[2]) : '(no snippet)'}</pre>
       </div>
       {#if j < ins.path.length - 1}
-        <div class="ins-connector" title={ins.dir === 'callers' ? 'caller → callee' : 'caller → callee'}>
+        <div class="ins-connector" data-tip={ins.dir === 'callers' ? 'caller → callee' : 'caller → callee'}>
           {ins.dir === 'callers' ? '↑' : '↓'}
         </div>
       {/if}

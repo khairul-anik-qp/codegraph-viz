@@ -117,21 +117,21 @@
     <h2 class="mono">
       {symbol[0]}
       {#if isDead}
-        <span class="dead-pill" title="No callers and no references/extends/implements/instantiates found — likely dead code">⚠ dead</span>
+        <span class="dead-pill" data-tip="No callers and no references/extends/implements/instantiates found — likely dead code">⚠ dead</span>
       {/if}
     </h2>
     {#if qualifiedName && $detailMode === 'deepdive'}
-      <div class="qualified-name mono" title="Fully qualified name">{qualifiedName}</div>
+      <div class="qualified-name mono" data-tip="Fully qualified name">{qualifiedName}</div>
     {/if}
     <div class="path-pkg">
       {symbol[1]} &middot;
-      <span class="pkg-badge" style="color:{pkgColor(symbolFile[1])}" title="Package">{shortPkg(DATA.packages[symbolFile[1]][0])}</span>
+      <span class="pkg-badge" style="color:{pkgColor(symbolFile[1])}" data-tip="Package">{shortPkg(DATA.packages[symbolFile[1]][0])}</span>
       &middot;
-      <a class="path-link" href={vscodeUri(symbolFile[0], symbol[2])} title={projectRoot ? 'Open in VS Code' : 'No project root — links disabled'}>
+      <a class="path-link" href={vscodeUri(symbolFile[0], symbol[2])} data-tip={projectRoot ? 'Open in VS Code' : 'No project root — links disabled'}>
         {symbolFile[0]}:{symbol[2]}
       </a>
       {#if projectRoot}
-        <a class="open-ide" href={vscodeUri(symbolFile[0], symbol[2])} title="Open in VS Code">↗</a>
+        <a class="open-ide" href={vscodeUri(symbolFile[0], symbol[2])} data-tip="Open in VS Code" aria-label="Open in VS Code">↗</a>
       {/if}
     </div>
 
@@ -147,12 +147,12 @@
         {#if isStatic}<span class="flag-badge mono">static</span>{/if}
         {#if isAsync}<span class="flag-badge mono">async</span>{/if}
         {#if isAbstract}<span class="flag-badge mono">abstract</span>{/if}
-        {#if typeParameters.length > 0}<span class="flag-badge mono" title="Type parameters">&lt;{typeParameters.join(', ')}&gt;</span>{/if}
-        {#if realReturnType}<span class="flag-badge mono returns" title="Return type">→ {realReturnType}</span>{/if}
+        {#if typeParameters.length > 0}<span class="flag-badge mono" data-tip="Type parameters">&lt;{typeParameters.join(', ')}&gt;</span>{/if}
+        {#if realReturnType}<span class="flag-badge mono returns" data-tip="Return type">→ {realReturnType}</span>{/if}
       </div>
     {/if}
     {#if $detailMode === 'deepdive' && realSignature && realSignature !== symbol[0]}
-      <div class="real-sig mono" title="Signature as parsed by CodeGraph">{realSignature}</div>
+      <div class="real-sig mono" data-tip="Signature as parsed by CodeGraph">{realSignature}</div>
     {/if}
 
     {#if symbol[6]}
@@ -214,14 +214,14 @@
 
     <div class="kv-grid" style="margin-bottom:14px;">
       <div class="k">Complexity</div>
-      <div class="v" title="Heuristic cyclomatic complexity (counts if/for/while/case/catch/&&/||/?)">
+      <div class="v" data-tip="Heuristic cyclomatic complexity (counts if/for/while/case/catch/&&/||/?)">
         <span class="complexity-pill" class:complex-high={symComplexity > 15} class:complex-med={symComplexity > 8 && symComplexity <= 15}>
           {symComplexity}
         </span>
         <span style="color:var(--muted); font-size:10.5px; margin-left:6px;">{symComplexity > 15 ? 'high' : symComplexity > 8 ? 'med' : symComplexity > 2 ? 'low' : 'trivial'}</span>
       </div>
       <div class="k">Transitive reach</div>
-      <div class="v" title="Total symbols that can reach this one through any call path">
+      <div class="v" data-tip="Total symbols that can reach this one through any call path">
         <b>{symReach}</b>
         <span style="color:var(--muted); font-size:10.5px; margin-left:6px;">symbols depend on this</span>
       </div>
@@ -238,7 +238,7 @@
             <div class="snippet-line truncated"><span class="trunc">{line}</span></div>
           {:else}
             <div class="snippet-line">
-              <a class="ln" href={vscodeUri(symbolFile[0], snippetStart + i)} title={projectRoot ? `Open line ${snippetStart + i} in VS Code` : 'No project root'}>{snippetStart + i}</a>
+              <a class="ln" href={vscodeUri(symbolFile[0], snippetStart + i)} data-tip={projectRoot ? `Open line ${snippetStart + i} in VS Code` : 'No project root'}>{snippetStart + i}</a>
               <span class="code">{@html highlightLine(line || ' ', symbolFile[2])}</span>
             </div>
           {/if}
@@ -301,9 +301,9 @@
     <button class="close-btn" on:click={close}>✕</button>
     <h2 class="mono">{displayName(file[0])}</h2>
     <div class="path-pkg">
-      <a class="path-link" href={vscodeUri(file[0])} title={projectRoot ? 'Open in VS Code' : 'No project root — links disabled'}>{file[0]}</a>
+      <a class="path-link" href={vscodeUri(file[0])} data-tip={projectRoot ? 'Open in VS Code' : 'No project root — links disabled'}>{file[0]}</a>
       {#if projectRoot}
-        <a class="open-ide" href={vscodeUri(file[0])} title="Open in VS Code">↗</a>
+        <a class="open-ide" href={vscodeUri(file[0])} data-tip="Open in VS Code" aria-label="Open in VS Code">↗</a>
       {/if}
     </div>
     <div class="kv-grid">
@@ -405,6 +405,7 @@
     padding: 2px 7px;
     margin-left: 8px;
     vertical-align: middle;
+    text-wrap: nowrap;
   }
   .pkg-badge {
     font-weight: 600;

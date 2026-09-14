@@ -101,22 +101,22 @@
     {#each filtered as h, i (h.symId)}
       <div class="row">
         <span class="rank">{i + 1}</span>
-        <button class="name mono" on:click={() => jumpToSymbol(h.symId)} title={h.filePath}>{h.name}</button>
+        <button class="name mono" on:click={() => jumpToSymbol(h.symId)} data-tip={h.filePath}>{h.name}</button>
         <span class="kind-h">{h.kind}</span>
-        <span class="num mono" title="in-degree (direct callers)">{h.inDeg}</span>
-        <span class="num mono" title="transitive inbound reach — symbols that depend on this one through any call path">{h.reach}</span>
-        <span class="num mono" class:cx-high={h.complexity > 15} class:cx-med={h.complexity > 8 && h.complexity <= 15} title="heuristic complexity">{h.complexity}</span>
-        <span class="num mono" title="out-degree (callees)">{h.outDeg}</span>
+        <span class="num mono" data-tip="in-degree (direct callers)">{h.inDeg}</span>
+        <span class="num mono" data-tip="transitive inbound reach — symbols that depend on this one through any call path">{h.reach}</span>
+        <span class="num mono" class:cx-high={h.complexity > 15} class:cx-med={h.complexity > 8 && h.complexity <= 15} data-tip="heuristic complexity">{h.complexity}</span>
+        <span class="num mono" data-tip="out-degree (callees)">{h.outDeg}</span>
         <div class="dist">
           <div class="bar" style="width: {(h.inDeg / maxInDeg * 100).toFixed(1)}%; background: var(--accent)"></div>
           {#each h.callerPkgDistribution as d (d.idx)}
-            <span class="dist-pkg" style="background: {pkgColor(d.idx)}" title="pkg {DATA.packages[d.idx][0]}: {d.count}">{d.count}</span>
+            <span class="dist-pkg" style="background: {pkgColor(d.idx)}" data-tip="pkg {DATA.packages[d.idx][0]}: {d.count}">{d.count}</span>
           {/each}
         </div>
-        <span class="loc mono" title={h.filePath}>{displayName(h.filePath)}<span class="line">:{h.startLine}</span></span>
+        <span class="loc mono" data-tip={h.filePath}>{displayName(h.filePath)}<span class="line">:{h.startLine}</span></span>
         <div class="actions">
-          <button class="row-btn" title="Single flow tree" on:click={() => openFlow(h.symId, 'in')}>flow</button>
-          <button class="row-btn" title="All paths (callers + callees)" on:click={() => openAllFlows(h.symId)}>all</button>
+          <button class="row-btn" data-tip="Single flow tree" on:click={() => openFlow(h.symId, 'in')}>flow</button>
+          <button class="row-btn" data-tip="All paths (callers + callees)" on:click={() => openAllFlows(h.symId)}>all</button>
         </div>
       </div>
     {/each}

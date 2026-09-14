@@ -6,7 +6,7 @@
     DATA, view, isolate, hop, direction, showImports, showCalls, searchQuery,
     flowRoot, flowDirection, flowDepth, flowTrail, flowFeatureFilter,
     symOutAdj, symInAdj, packageFilter, symUsageInAdj,
-    symbolKindFilter, deadCodeSymbols, detailMode, domainDepth,
+    symbolKindFilter, detailMode, domainDepth,
   } from './stores.js';
   import {
     setIsolate, clearIsolate, openPackage, jumpToFile, jumpToSymbol,
@@ -158,7 +158,6 @@
   // a new function whenever openSections changes, and Svelte picks it up.
   const OPEN_SECTIONS_KEY = 'codegraph-sidebar-open';
   const DEFAULT_OPEN = {
-    search: true,
     views: false,
     flowControls: true,
     flowsFromRoot: true,
@@ -213,47 +212,42 @@
 
   <div class="section section-search">
     <div class="section-head">
-      <button type="button" class="section-toggle" on:click={() => toggleSection('search')} aria-expanded={$isOpen('search')}>
-        <span class="section-chev" class:open={$isOpen('search')}>▸</span>
-        <span class="section-title">Search files &amp; functions</span>
-      </button>
+      <span class="section-title">Search files &amp; functions</span>
     </div>
-    {#if $isOpen('search')}
-      <div class="section-body">
-        <input type="text" placeholder="e.g. AddEditOutcomeModal or formatDate" autocomplete="off" bind:value={$searchQuery} />
-        <div class="kind-chips">
-          {#each availableKinds as k (k)}
-            <button
-              class="kind-chip"
-              class:active={$symbolKindFilter && $symbolKindFilter.has(k)}
-              title="Toggle filter: show only symbols of kind '{k}'"
-              on:click={() => toggleKind(k)}
-            >{k}</button>
-          {/each}
-          {#if $symbolKindFilter}
-            <button class="kind-chip clear" on:click={clearKindFilter} title="Clear kind filter">✕</button>
-          {/if}
-        </div>
-        <div class="search-results">
-          {#each symbolHits as symId (symId)}
-            <div class="search-hit-row">
-              <button class="search-hit" title={DATA.symbols[symId][6] || null} on:click={() => jumpToSymbol(symId)}>
-                <span class="mono" style="color:var(--accent); font-weight:700;">{DATA.symbols[symId][0]}</span>
-                <span style="color:var(--muted);"> · {DATA.symbols[symId][1]} · {displayName(DATA.files[DATA.symbols[symId][4]][0])}</span>
-                {#if DATA.symbols[symId][6]}<div class="hit-doc">{DATA.symbols[symId][6].split('\n')[0]}</div>{/if}
-              </button>
-              <button class="flow-btn" title="View single call flow" on:click={() => openFlow(symId, 'out')}>flow</button>
-              <button class="flow-btn" title="Enumerate every path through this symbol (callers + callees)" on:click={() => openAllFlows(symId)}>all</button>
-            </div>
-          {/each}
-          {#each fileHits as i (i)}
-            <button class="search-hit" style="color:{pkgColor(DATA.files[i][1])}" on:click={() => jumpToFile(i)}>
-              {DATA.files[i][0]}
-            </button>
-          {/each}
-        </div>
+    <div class="section-body">
+      <input type="text" placeholder="e.g. AddEditOutcomeModal or formatDate" autocomplete="off" bind:value={$searchQuery} />
+      <div class="kind-chips">
+        {#each availableKinds as k (k)}
+          <button
+            class="kind-chip"
+            class:active={$symbolKindFilter && $symbolKindFilter.has(k)}
+            data-tip="Toggle filter: show only symbols of kind '{k}'"
+            on:click={() => toggleKind(k)}
+          >{k}</button>
+        {/each}
+        {#if $symbolKindFilter}
+          <button class="kind-chip clear" on:click={clearKindFilter} data-tip="Clear kind filter" aria-label="Clear kind filter">✕</button>
+        {/if}
       </div>
-    {/if}
+      <div class="search-results">
+        {#each symbolHits as symId (symId)}
+          <div class="search-hit-row">
+            <button class="search-hit" data-tip={DATA.symbols[symId][6] || null} on:click={() => jumpToSymbol(symId)}>
+              <span class="mono" style="color:var(--accent); font-weight:700;">{DATA.symbols[symId][0]}</span>
+              <span style="color:var(--muted);"> · {DATA.symbols[symId][1]} · {displayName(DATA.files[DATA.symbols[symId][4]][0])}</span>
+              {#if DATA.symbols[symId][6]}<div class="hit-doc">{DATA.symbols[symId][6].split('\n')[0]}</div>{/if}
+            </button>
+            <button class="flow-btn" data-tip="View single call flow" on:click={() => openFlow(symId, 'out')}>flow</button>
+            <button class="flow-btn" data-tip="Enumerate every path through this symbol (callers + callees)" on:click={() => openAllFlows(symId)}>all</button>
+          </div>
+        {/each}
+        {#each fileHits as i (i)}
+          <button class="search-hit" style="color:{pkgColor(DATA.files[i][1])}" on:click={() => jumpToFile(i)}>
+            {DATA.files[i][0]}
+          </button>
+        {/each}
+      </div>
+    </div>
   </div>
 
   <div class="section">
@@ -266,19 +260,9 @@
     {#if $isOpen('views')}
       <div class="section-body">
         <button
-          class="legend-item dead-code-row"
-          class:active={$view === 'deadCode'}
-          title="Symbols with zero callers — likely dead code"
-          on:click={() => toggleListView('deadCode')}
-        >
-          <span class="swatch" style="background:#c94f7c"></span>
-          <span>Dead code</span>
-          <span class="count">{$deadCodeSymbols.length}</span>
-        </button>
-        <button
           class="legend-item"
           class:active={$view === 'hubs'}
-          title="Top-N most-called functions — refactor targets"
+          data-tip="Top-N most-called functions — refactor targets"
           on:click={() => toggleListView('hubs')}
         >
           <span class="swatch" style="background:var(--accent)"></span>
@@ -288,7 +272,7 @@
         <button
           class="legend-item"
           class:active={$view === 'entryPoints'}
-          title="Exported zero-callers + framework entry markers"
+          data-tip="Exported zero-callers + framework entry markers"
           on:click={() => toggleListView('entryPoints')}
         >
           <span class="swatch" style="background:#c9a13f"></span>
@@ -298,7 +282,7 @@
         <button
           class="legend-item"
           class:active={$view === 'pkgSummary'}
-          title="Per-package aggregate stats and top hubs"
+          data-tip="Per-package aggregate stats and top hubs"
           on:click={() => toggleListView('pkgSummary')}
         >
           <span class="swatch" style="background:#4a90d9"></span>
@@ -308,7 +292,7 @@
         <button
           class="legend-item"
           class:active={$view === 'routes'}
-          title="Every REST/GraphQL/WebSocket route, grouped by controller"
+          data-tip="Every REST/GraphQL/WebSocket route, grouped by controller"
           on:click={() => toggleListView('routes')}
         >
           <span class="swatch" style="background:#3fa77f"></span>
@@ -318,7 +302,7 @@
         <button
           class="legend-item"
           class:active={$view === 'structure'}
-          title="Class inheritance (extends/implements) and object construction (new X())"
+          data-tip="Class inheritance (extends/implements) and object construction (new X())"
           on:click={() => toggleListView('structure')}
         >
           <span class="swatch" style="background:#a367c9"></span>
@@ -328,7 +312,7 @@
         <button
           class="legend-item"
           class:active={$view === 'docs'}
-          title="Docstring coverage per package, worst first"
+          data-tip="Docstring coverage per package, worst first"
           on:click={() => toggleListView('docs')}
         >
           <span class="swatch" style="background:#7d8590"></span>
@@ -338,7 +322,7 @@
         <button
           class="legend-item"
           class:active={$view === 'domains'}
-          title="Business/feature domains grouped by folder depth, with entry points and call-chain previews"
+          data-tip="Business/feature domains grouped by folder depth, with entry points and call-chain previews"
           on:click={() => toggleListView('domains')}
         >
           <span class="swatch" style="background:#5b5ed6"></span>
@@ -355,7 +339,7 @@
         <button type="button" class="section-toggle" on:click={() => toggleSection('flowControls')} aria-expanded={$isOpen('flowControls')}>
           <span class="section-chev" class:open={$isOpen('flowControls')}>▸</span>
           <span class="section-title">Flow diagram</span>
-          {#if $flowTrail.length > 0}<span class="section-meta" title="back steps">{$flowTrail.length}</span>{/if}
+          {#if $flowTrail.length > 0}<span class="section-meta" data-tip="back steps">{$flowTrail.length}</span>{/if}
         </button>
       </div>
       {#if $isOpen('flowControls')}
@@ -416,14 +400,14 @@
         <button type="button" class="section-toggle" on:click={() => toggleSection('isolate')} aria-expanded={$isOpen('isolate')}>
           <span class="section-chev" class:open={$isOpen('isolate')}>▸</span>
           <span class="section-title">Isolate dependency chain</span>
-          {#if $isolate}<span class="section-meta" title="active isolation">●</span>{/if}
+          {#if $isolate}<span class="section-meta" data-tip="active isolation">●</span>{/if}
         </button>
       </div>
       {#if $isOpen('isolate')}
         <div class="section-body">
           <div class="isolate-banner" class:active={!!$isolate}>
             <span>Isolating <b>{$isolate ? $isolate.name : '—'}</b></span>
-            <button class="clear-x" title="Clear isolation" on:click={clearIsolate}>✕</button>
+            <button class="clear-x" data-tip="Clear isolation" aria-label="Clear isolation" on:click={clearIsolate}>✕</button>
           </div>
           <div style="display:flex; flex-direction:column; gap:10px; margin-top:8px;">
             <div>
@@ -474,7 +458,7 @@
       <button type="button" class="section-toggle" on:click={() => toggleSection('packages')} aria-expanded={$isOpen('packages')}>
         <span class="section-chev" class:open={$isOpen('packages')}>▸</span>
         <span class="section-title">Packages</span>
-        {#if $packageFilter}<span class="section-meta" title="active filter">●</span>{/if}
+        {#if $packageFilter}<span class="section-meta" data-tip="active filter">●</span>{/if}
         <span class="section-meta">{$packageFilter ? `${[...$packageFilter].length}/` : ''}{DATA.packages.length}</span>
       </button>
       {#if $packageFilter}
@@ -496,7 +480,7 @@
             <button
               class="pin-btn"
               class:active={!!$packageFilter && $packageFilter.has(i)}
-              title="Focus on just this package (shift-click to add to focus)"
+              data-tip="Focus on just this package (shift-click to add to focus)"
               on:click={(e) => togglePackageFocus(i, e.shiftKey)}
             >📌</button>
           </div>

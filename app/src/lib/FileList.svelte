@@ -1,10 +1,14 @@
 <script>
-  // Sortable, filterable list of files within a package, with row selection and scroll-to-focus.
+  // Sortable, filterable list of files within a package. Clicking a file row
+  // opens the flow view rooted at that file's most-connected callable symbol
+  // (its "dominant" flow); the ⓘ button inspects the file in the detail
+  // panel instead. Rows also scroll-into-view for search-hit focus.
   import { tick } from 'svelte';
   import {
     DATA, currentPkg, selectedFile, selectedSymbol, focusRequest, packageFilter,
+    symInAdj, symOutAdj,
   } from './stores.js';
-  import { jumpToSymbol, recomputeAllFlows } from './actions.js';
+  import { jumpToSymbol, recomputeAllFlows, openFlow } from './actions.js';
   import { displayName } from './graph.js';
 
   export let pkgIdx;
@@ -45,7 +49,7 @@
     else { sortKey = key; sortDir = 1; }
   }
 
-  // Selects a file row, or deselects it if it's already selected.
+  // Selects a file row (ⓘ button), or deselects it if it's already selected.
   function selectRow(idx) {
     if ($selectedFile === idx) {
       selectedFile.set(null);
@@ -54,6 +58,29 @@
       selectedFile.set(idx);
       selectedSymbol.set(null);
     }
+  }
+
+  // The file's most-connected callable symbol — the natural root when the
+  // user asks "show me this file's flow". Ties go to the first symbol in
+  // source order (lowest id, since fileSymbolIds is line-ordered).
+  const CALLABLE_KINDS = new Set(['function', 'method', 'component', 'class', 'route']);
+  function hubSymId(fileIdx) {
+    let best = null;
+    let bestDeg = -1;
+    for (const id of (DATA.fileSymbolIds[fileIdx] || [])) {
+      if (!CALLABLE_KINDS.has(DATA.symbols[id][1])) continue;
+      const deg = (symInAdj.get(id) || []).length + (symOutAdj.get(id) || []).length;
+      if (deg > bestDeg) { bestDeg = deg; best = id; }
+    }
+    return best;
+  }
+  // Row click: open the flow view rooted at the file's hub symbol. Files
+  // with nothing callable (pure type/constant modules) fall back to the
+  // old select-for-inspection behavior.
+  function openFileFlow(fileIdx) {
+    const hub = hubSymId(fileIdx);
+    if (hub !== null) openFlow(hub, 'out');
+    else selectRow(fileIdx);
   }
 
   // Returns the display-friendly path for a file index.
@@ -92,16 +119,23 @@
   </div>
   <div class="rows" bind:this={listEl}>
     {#each filteredFiles as f (f.idx)}
-      <button
-        class="row"
-        class:selected={$selectedFile === f.idx}
-        data-file-idx={f.idx}
-        on:click={() => selectRow(f.idx)}
-      >
-        <span class="path mono">{f.path}</span>
-        <span class="num">{f.symCount}</span>
-        <span class="num">{f.edgeCount}</span>
-      </button>
+      <div class="row-wrap" class:selected={$selectedFile === f.idx} data-file-idx={f.idx}>
+        <button
+          class="row"
+          data-tip="Open this file's dominant call flow"
+          on:click={() => openFileFlow(f.idx)}
+        >
+          <span class="path mono">{f.path}</span>
+          <span class="num">{f.symCount}</span>
+          <span class="num">{f.edgeCount}</span>
+        </button>
+        <button
+          class="inspect"
+          data-tip="Inspect this file in the detail panel"
+          aria-label="Inspect file {f.path}"
+          on:click={() => selectRow(f.idx)}
+        >ⓘ</button>
+      </div>
     {/each}
     {#if filteredFiles.length === 0}
       <div class="empty">No files match.</div>
@@ -168,22 +202,35 @@
   .col-h.num { text-align: right; }
 
   .rows { overflow-y: auto; flex: 1; }
+  .row-wrap {
+    display: grid;
+    grid-template-columns: 1fr 34px;
+    align-items: stretch;
+    border-bottom: 1px solid var(--border);
+  }
+  .row-wrap.selected {
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+  }
+  .row-wrap.selected .row { padding-left: 11px; }
   .row {
     background: none;
     border: none;
-    border-bottom: 1px solid var(--border);
     text-align: left;
     cursor: pointer;
     font-size: 12.5px;
     color: var(--text);
-    width: 100%;
   }
   .row:hover { background: var(--accent-soft); }
-  .row.selected {
-    background: var(--accent-soft);
-    border-left: 3px solid var(--accent);
-    padding-left: 11px;
+  .inspect {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 0;
   }
+  .inspect:hover { color: var(--accent); }
   .row .path {
     overflow: hidden;
     text-overflow: ellipsis;

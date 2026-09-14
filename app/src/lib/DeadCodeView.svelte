@@ -77,7 +77,7 @@
     </div>
     <div class="head-controls">
       <input type="text" placeholder="Filter by name…" bind:value={query} />
-      <label class="callable-toggle" title="Interfaces, type aliases, constants, etc. are never 'called' — they're reached via references/extends/instantiates instead, which is noisier to review one-by-one.">
+      <label class="callable-toggle" data-tip="Interfaces, type aliases, constants, etc. are never 'called' — they're reached via references/extends/instantiates instead, which is noisier to review one-by-one.">
         <input type="checkbox" bind:checked={callableOnly} />
         functions/methods/components only
       </label>
@@ -105,7 +105,7 @@
       <button class="row" on:click={() => jumpToSymbol(d.symId)}>
         <span
           class="sev sev-{d.severity}"
-          title={d.severity === 2
+          data-tip={d.severity === 2
             ? "un-exported + zero callers = definitely dead"
             : "exported + zero callers = likely dead"}
         >
@@ -114,7 +114,7 @@
         <span class="mono name">{d.name}</span>
         <span class="kind">{d.kind}</span>
         <span class="pkg" style="color:{pkgColor(d.pkgIdx)}">{d.pkgName}</span>
-        <span class="file mono" title={d.filePath}
+        <span class="file mono" data-tip={d.filePath}
           >{displayName(d.filePath)}<span class="line">:{d.startLine}</span></span
         >
       </button>

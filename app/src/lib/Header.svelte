@@ -2,7 +2,7 @@
   // Top app bar: title, back button, breadcrumb trail for the active view, and
   // global stats/actions (diff toggle, path finder).
   import { DATA, view, currentPkg, flowRoot, flowDirection, flowTrail, allFlowsRoot, pathFinderOpen, themeMode } from './stores.js';
-  import { goToPackagesView, flowJumpToTrail, openFlow, toggleListView } from './actions.js';
+  import { goToPackagesView, flowJumpToTrail, openFlow } from './actions.js';
   import { goBack } from './hashState.js';
   import { shortPkg, displayName } from './graph.js';
   import DiffToggle from './DiffToggle.svelte';
@@ -11,11 +11,6 @@
   $: currentPackageFileCount = $view === 'files' ? files.reduce((n, f) => f[1] === $currentPkg ? n + 1 : n, 0) : 0;
   $: generatedLabel = DATA.generatedAt ? new Date(DATA.generatedAt).toLocaleString() : null;
 
-  // Stale files / unresolved imports — surfaced only as a banner when there's
-  // actually something wrong, instead of a permanent always-zero nav row.
-  $: staleFileCount = DATA.files.reduce((n, f) => n + (f[4] != null && f[5] != null && f[4] > f[5] ? 1 : 0), 0);
-  $: unresolvedImportCount = (DATA.unresolvedImports || []).length;
-  $: indexHealthIssues = staleFileCount + unresolvedImportCount;
   // Only show Back on views that the user navigated *into* — 'packages' is
   // the home view, so there's nothing meaningful to go back to.
   $: showBack = $view !== 'packages';
@@ -24,12 +19,30 @@
   const THEME_ICON = { system: '🖥', light: '☀', dark: '🌙' };
   const THEME_LABEL = { system: 'Theme: system', light: 'Theme: light', dark: 'Theme: dark' };
   function cycleTheme() { themeMode.set(THEME_CYCLE[$themeMode]); }
+
+  // Long flow trails would overflow the header, so the middle of the trail
+  // collapses into a "…" crumb (title tooltip lists what was hidden). Each
+  // kept crumb remembers its original trail index so flowJumpToTrail still
+  // works.
+  const MAX_TRAIL_CRUMBS = 4;
+  $: trailView = (() => {
+    const trail = $flowTrail || [];
+    if (trail.length <= MAX_TRAIL_CRUMBS + 1) {
+      return { head: trail.map((symId, i) => ({ symId, i })), tail: [], hiddenNames: [] };
+    }
+    const keep = MAX_TRAIL_CRUMBS / 2;
+    const head = trail.slice(0, keep).map((symId, i) => ({ symId, i }));
+    const tailStart = trail.length - keep;
+    const tail = trail.slice(tailStart).map((symId, i) => ({ symId, i: tailStart + i }));
+    const hiddenNames = trail.slice(keep, tailStart).map(id => DATA.symbols[id][0]);
+    return { head, tail, hiddenNames };
+  })();
 </script>
 
 <header>
   <h1>CodeGraph <span>Explorer</span></h1>
   {#if showBack}
-    <button class="back-btn" title="Back (b · Alt+←)" on:click={goBack}>← Back</button>
+    <button class="back-btn" data-tip="Back (b · Alt+←)" on:click={goBack}>← Back</button>
   {/if}
   <div class="breadcrumb">
     <button class="crumb" class:current={$view === 'packages'} on:click={goToPackagesView}>Packages</button>
@@ -56,27 +69,26 @@
     {:else if $view === 'flow' && $flowRoot !== null}
       <span class="sep">/</span>
       <span class="crumb">flow: {$flowDirection === 'out' ? '→ calls' : '← called by'}</span>
-      {#each $flowTrail as symId, i (i)}
+      {#each trailView.head as c (c.i)}
         <span class="sep">/</span>
-        <button class="crumb" on:click={() => flowJumpToTrail(i)}>{DATA.symbols[symId][0]}</button>
+        <button class="crumb" on:click={() => flowJumpToTrail(c.i)}>{DATA.symbols[c.symId][0]}</button>
       {/each}
+      {#if trailView.tail.length}
+        <span class="sep">/</span>
+        <span class="crumb ellipsis" data-tip={trailView.hiddenNames.join(' / ')}>…</span>
+        {#each trailView.tail as c (c.i)}
+          <span class="sep">/</span>
+          <button class="crumb" on:click={() => flowJumpToTrail(c.i)}>{DATA.symbols[c.symId][0]}</button>
+        {/each}
+      {/if}
       <span class="sep">/</span>
       <span class="crumb current">{DATA.symbols[$flowRoot][0]}</span>
     {/if}
   </div>
   <div class="spacer"></div>
-  {#if indexHealthIssues > 0}
-    <button
-      class="health-banner"
-      title="Stale files and unresolved internal imports — is this export trustworthy?"
-      on:click={() => toggleListView('indexHealth')}
-    >
-      ⚠ {indexHealthIssues} index issue{indexHealthIssues === 1 ? '' : 's'}
-    </button>
-  {/if}
   <DiffToggle />
-  <button class="theme-btn" title="{THEME_LABEL[$themeMode]} (click to cycle)" on:click={cycleTheme}>{THEME_ICON[$themeMode]}</button>
-  <button class="find-path-btn" title="Find path between two symbols (p)" on:click={() => pathFinderOpen.set(true)}>⇄ Find path</button>
+  <button class="theme-btn" data-tip="{THEME_LABEL[$themeMode]} (click to cycle)" aria-label="{THEME_LABEL[$themeMode]}" on:click={cycleTheme}>{THEME_ICON[$themeMode]}</button>
+  <button class="find-path-btn" data-tip="Find path between two symbols (p)" on:click={() => pathFinderOpen.set(true)}>⇄ Find path</button>
   <div class="stats">
     {#if $view === 'packages'}
       <span><b>{DATA.packages.length}</b> packages</span>
@@ -106,20 +118,6 @@
     transition: color 0.1s ease, border-color 0.1s ease;
   }
   .back-btn:hover { color: var(--accent); border-color: var(--accent); }
-
-  .health-banner {
-    background: color-mix(in srgb, var(--danger) 16%, var(--surface));
-    color: var(--danger);
-    border: 1px solid var(--danger);
-    border-radius: 6px;
-    padding: 4px 10px;
-    font-family: var(--vscode-font-family, 'Manrope', sans-serif);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    margin-right: 12px;
-  }
-  .health-banner:hover { background: color-mix(in srgb, var(--danger) 28%, var(--surface)); }
 
   .theme-btn {
     background: var(--surface-2);

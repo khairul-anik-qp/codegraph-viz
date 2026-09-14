@@ -28,6 +28,7 @@
   import DomainView from './lib/DomainView.svelte';
   import DetailPanel from './lib/DetailPanel.svelte';
   import NodeTooltip from './lib/NodeTooltip.svelte';
+  import TitleTip from './lib/TitleTip.svelte';
   import PathFinderModal from './lib/PathFinderModal.svelte';
   import KeyboardShortcutsHelp from './lib/KeyboardShortcutsHelp.svelte';
   import { applyHashState, syncHash } from './lib/hashState.js';
@@ -35,7 +36,7 @@
   $: hint = $view === 'packages'
     ? 'Click a bubble to open a package. Click again to <b>isolate</b> its dependency chain.'
     : $view === 'files'
-    ? 'Click a row to inspect a file in the panel &middot; click again to clear &middot; use search above to filter.'
+    ? 'Click a file to open its dominant call flow &middot; ⓘ to inspect it in the panel &middot; use search above to filter.'
     : $view === 'allFlows'
     ? 'Every path that flows through the searched symbol &middot; click any chip to jump to that function.'
     : $view === 'deadCode'
@@ -192,6 +193,7 @@
   </main>
   <DetailPanel />
   <NodeTooltip />
+  <TitleTip />
   <PathFinderModal />
   <KeyboardShortcutsHelp />
 </div>

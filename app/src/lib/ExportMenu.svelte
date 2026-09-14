@@ -41,7 +41,7 @@
 
 <svelte:window on:codegraph:export-flow={onExportShortcut} />
 <div class="export-menu">
-  <button class="export-btn" title="Export diagram (e)" on:click={() => (openMenu = !openMenu)}>Export ▾</button>
+  <button class="export-btn" data-tip="Export diagram (e)" on:click={() => (openMenu = !openMenu)}>Export ▾</button>
   {#if openMenu}
     <div class="export-dropdown">
       <button on:click={exportPng}>PNG</button>

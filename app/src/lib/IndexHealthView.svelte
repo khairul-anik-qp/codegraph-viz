@@ -96,7 +96,7 @@
         {#each erroredFiles as f (f.idx)}
           <div class="broken-group">
             <button class="broken-file" on:click={() => jumpToFile(f.idx)}>
-              <span class="mono path" title={f.path}>{displayName(f.path)}</span>
+              <span class="mono path" data-tip={f.path}>{displayName(f.path)}</span>
               <span class="count-pill">{f.errors.length}</span>
             </button>
             {#each f.errors as e}
@@ -118,7 +118,7 @@
         <p class="section-note">Source changed after CodeGraph last saw it. Everything the viewer says about these files' calls/callers may be out of date until <span class="mono">codegraph index</span> reruns.</p>
         {#each staleFiles as f (f.idx)}
           <button class="row" on:click={() => jumpToFile(f.idx)}>
-            <span class="mono path" title={f.path}>{f.path}</span>
+            <span class="mono path" data-tip={f.path}>{f.path}</span>
             <span class="age">stale {formatAge(f.ageMs)}</span>
           </button>
         {/each}
@@ -137,11 +137,11 @@
         {#each brokenByFile as g (g.fileIdx)}
           <div class="broken-group">
             <button class="broken-file" on:click={() => jumpToFile(g.fileIdx)}>
-              <span class="mono path" title={g.path}>{displayName(g.path)}</span>
+              <span class="mono path" data-tip={g.path}>{displayName(g.path)}</span>
               <span class="count-pill">{g.refs.length}</span>
             </button>
             {#each g.refs as r (r.line + r.name)}
-              <a class="broken-ref mono" href={vscodeUri(g.path, r.line)} title={projectRoot ? 'Open in VS Code' : 'No project root — links disabled'}>
+              <a class="broken-ref mono" href={vscodeUri(g.path, r.line)} data-tip={projectRoot ? 'Open in VS Code' : 'No project root — links disabled'}>
                 <span class="ln">:{r.line}</span>
                 <span class="ref-name">{r.name}</span>
               </a>

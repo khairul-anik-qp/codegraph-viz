@@ -73,11 +73,11 @@
     {#each filtered as e (e.symId)}
       <div class="row">
         <div class="row-main">
-          <button class="name mono" on:click={() => jumpToSymbol(e.symId)} title={e.filePath}>{e.name}</button>
+          <button class="name mono" on:click={() => jumpToSymbol(e.symId)} data-tip={e.filePath}>{e.name}</button>
           <span class="kind">{e.kind}</span>
-          <span class="reason" title={e.reason}>{e.reason}</span>
+          <span class="reason" data-tip={e.reason}>{e.reason}</span>
           {#if e.isExported}<span class="badge exp">exported</span>{/if}
-          {#if e.complexity > 8}<span class="badge cx" title="Complexity {e.complexity}">cx {e.complexity}</span>{/if}
+          {#if e.complexity > 8}<span class="badge cx" data-tip="Complexity {e.complexity}">cx {e.complexity}</span>{/if}
         </div>
         <div class="row-meta">
           <span class="pkg" style="color:{pkgColor(e.pkgIdx)}">{e.pkgName}</span>

@@ -277,7 +277,7 @@
 {#if root !== null}
   <div class="flow-toolbar">
     <ExportMenu {svgEl} filename={DATA.symbols[root][0]} />
-    <button class="all-flows-btn" on:click={() => openAllFlows(root)} title="Enumerate every path through this symbol (callers + callees)">
+    <button class="all-flows-btn" on:click={() => openAllFlows(root)} data-tip="Enumerate every path through this symbol (callers + callees)">
       all paths →
     </button>
   </div>

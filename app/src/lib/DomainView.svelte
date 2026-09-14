@@ -195,7 +195,7 @@
         {:else}
           {#each filtered as e (e.symId)}
             <div class="entry-card">
-              <button class="entry-head" on:click={() => openFlow(e.symId, 'out')} title={e.filePath}>
+              <button class="entry-head" on:click={() => openFlow(e.symId, 'out')} data-tip={e.filePath}>
                 <span class="entry-name mono">{e.name}</span>
                 <span class="entry-kind">{e.kind}</span>
                 <span class="entry-file mono muted">{displayName(e.filePath)}<span class="line">:{e.startLine}</span></span>
