@@ -6,12 +6,12 @@
     DATA, view, isolate, hop, direction, showImports, showCalls, searchQuery,
     flowRoot, flowDirection, flowDepth, flowTrail, flowFeatureFilter,
     symOutAdj, symInAdj, packageFilter, symUsageInAdj,
-    symbolKindFilter, detailMode, domainDepth,
+    symbolKindFilter, detailMode, domainDepth, pinnedViews,
   } from './stores.js';
   import {
     setIsolate, clearIsolate, openPackage, jumpToFile, jumpToSymbol,
     openFlow, openAllFlows, flowBack, setFlowDirection, setFlowFeatureFilter,
-    togglePackageFocus, clearPackageFocus, toggleListView,
+    togglePackageFocus, clearPackageFocus, toggleListView, togglePinnedView,
   } from './actions.js';
   import { pkgColor, shortPkg, displayName, featureGroup, isEntryPoint, groupPackagesByDepth } from './graph.js';
 
@@ -61,6 +61,25 @@
     }
     return n;
   })();
+
+  // Every standalone view reachable from this nav, in one place — each
+  // rendered identically whether it's pinned (always-visible "Primary"
+  // strip) or not (collapsible "More views" catalog below it). 'packages'
+  // isn't listed: it's the permanent home view, already one click away via
+  // the header's "Packages" breadcrumb, so it doesn't need a nav slot too.
+  $: viewCatalog = [
+    { key: 'flow', label: 'Flow', tip: 'Single-symbol call flow — search a function above or click any graph node, then trace what it calls', count: null },
+    { key: 'routes', label: 'API surface', tip: 'Every REST/GraphQL/WebSocket route, grouped by controller', count: routeCount },
+    { key: 'domains', label: 'Domains', tip: 'Business/feature domains grouped by folder depth, with entry points and call-chain previews', count: domainCount },
+    { key: 'hubs', label: 'Hubs', tip: 'Top-N most-called functions — refactor targets', count: 200 },
+    { key: 'entryPoints', label: 'Entry points', tip: 'Exported zero-callers + framework entry markers', count: entryPointCount },
+    { key: 'structure', label: 'Structure', tip: 'Class inheritance (extends/implements) and object construction (new X())', count: hierarchyGroupCount },
+    { key: 'pkgSummary', label: 'Pkg summary', tip: 'Per-package aggregate stats and top hubs', count: DATA.packages.length },
+    { key: 'docs', label: 'Docs coverage', tip: 'Docstring coverage per package, worst first', count: undocumentedCount },
+    { key: 'indexHealth', label: 'Index health', tip: 'Whether this export can be trusted right now — stale files, unresolved imports', count: null },
+  ];
+  $: pinnedCatalog = viewCatalog.filter(v => $pinnedViews.includes(v.key));
+  $: unpinnedCatalog = viewCatalog.filter(v => !$pinnedViews.includes(v.key));
 
   // Pre-collect every distinct symbol-kind present in DATA so the filter
   // chips below show only kinds that actually exist in this codebase.
@@ -158,14 +177,14 @@
   // a new function whenever openSections changes, and Svelte picks it up.
   const OPEN_SECTIONS_KEY = 'codegraph-sidebar-open';
   const DEFAULT_OPEN = {
-    views: false,
+    moreViews: true,
     flowControls: true,
     flowsFromRoot: true,
     isolate: true,
     edgeKinds: true,
     packages: false,
   };
-  const MIGRATE_KEYS = ['views', 'packages'];
+  const MIGRATE_KEYS = ['packages'];
   // Reads the persisted accordion open/closed state from localStorage,
   // dropping stale entries for keys whose default has since changed.
   function loadOpenSections() {
@@ -250,85 +269,43 @@
     </div>
   </div>
 
+  {#if pinnedCatalog.length}
+    <div class="section">
+      <div class="section-head">
+        <span class="section-title">Primary</span>
+      </div>
+      <div class="section-body">
+        {#each pinnedCatalog as v (v.key)}
+          <div class="view-row">
+            <button class="legend-item" class:active={$view === v.key} data-tip={v.tip} on:click={() => toggleListView(v.key)}>
+              <span>{v.label}</span>
+              {#if v.count != null}<span class="count">{v.count}</span>{/if}
+            </button>
+            <button class="pin-btn active" data-tip="Unpin from Primary" aria-label="Unpin {v.label}" on:click={() => togglePinnedView(v.key)}>★</button>
+          </div>
+        {/each}
+      </div>
+    </div>
+  {/if}
+
   <div class="section">
     <div class="section-head">
-      <button type="button" class="section-toggle" on:click={() => toggleSection('views')} aria-expanded={$isOpen('views')}>
-        <span class="section-chev" class:open={$isOpen('views')}>▸</span>
-        <span class="section-title">Views</span>
+      <button type="button" class="section-toggle" on:click={() => toggleSection('moreViews')} aria-expanded={$isOpen('moreViews')}>
+        <span class="section-chev" class:open={$isOpen('moreViews')}>▸</span>
+        <span class="section-title">More views</span>
       </button>
     </div>
-    {#if $isOpen('views')}
+    {#if $isOpen('moreViews')}
       <div class="section-body">
-        <button
-          class="legend-item"
-          class:active={$view === 'hubs'}
-          data-tip="Top-N most-called functions — refactor targets"
-          on:click={() => toggleListView('hubs')}
-        >
-          <span class="swatch" style="background:var(--accent)"></span>
-          <span>Hubs</span>
-          <span class="count">200</span>
-        </button>
-        <button
-          class="legend-item"
-          class:active={$view === 'entryPoints'}
-          data-tip="Exported zero-callers + framework entry markers"
-          on:click={() => toggleListView('entryPoints')}
-        >
-          <span class="swatch" style="background:#c9a13f"></span>
-          <span>Entry points</span>
-          <span class="count">{entryPointCount}</span>
-        </button>
-        <button
-          class="legend-item"
-          class:active={$view === 'pkgSummary'}
-          data-tip="Per-package aggregate stats and top hubs"
-          on:click={() => toggleListView('pkgSummary')}
-        >
-          <span class="swatch" style="background:#4a90d9"></span>
-          <span>Pkg summary</span>
-          <span class="count">{DATA.packages.length}</span>
-        </button>
-        <button
-          class="legend-item"
-          class:active={$view === 'routes'}
-          data-tip="Every REST/GraphQL/WebSocket route, grouped by controller"
-          on:click={() => toggleListView('routes')}
-        >
-          <span class="swatch" style="background:#3fa77f"></span>
-          <span>API surface</span>
-          <span class="count">{routeCount}</span>
-        </button>
-        <button
-          class="legend-item"
-          class:active={$view === 'structure'}
-          data-tip="Class inheritance (extends/implements) and object construction (new X())"
-          on:click={() => toggleListView('structure')}
-        >
-          <span class="swatch" style="background:#a367c9"></span>
-          <span>Structure</span>
-          <span class="count">{hierarchyGroupCount}</span>
-        </button>
-        <button
-          class="legend-item"
-          class:active={$view === 'docs'}
-          data-tip="Docstring coverage per package, worst first"
-          on:click={() => toggleListView('docs')}
-        >
-          <span class="swatch" style="background:#7d8590"></span>
-          <span>Docs coverage</span>
-          <span class="count">{undocumentedCount}</span>
-        </button>
-        <button
-          class="legend-item"
-          class:active={$view === 'domains'}
-          data-tip="Business/feature domains grouped by folder depth, with entry points and call-chain previews"
-          on:click={() => toggleListView('domains')}
-        >
-          <span class="swatch" style="background:#5b5ed6"></span>
-          <span>Domains</span>
-          <span class="count">{domainCount}</span>
-        </button>
+        {#each unpinnedCatalog as v (v.key)}
+          <div class="view-row">
+            <button class="legend-item" class:active={$view === v.key} data-tip={v.tip} on:click={() => toggleListView(v.key)}>
+              <span>{v.label}</span>
+              {#if v.count != null}<span class="count">{v.count}</span>{/if}
+            </button>
+            <button class="pin-btn" data-tip="Pin to Primary" aria-label="Pin {v.label}" on:click={() => togglePinnedView(v.key)}>☆</button>
+          </div>
+        {/each}
       </div>
     {/if}
   </div>
@@ -690,12 +667,12 @@
     margin: 0 0 8px 0;
   }
   .focus-hint b { color: var(--text); }
-  .pkg-row {
+  .pkg-row, .view-row {
     display: flex;
     align-items: center;
     gap: 2px;
   }
-  .pkg-row .legend-item { flex: 1; min-width: 0; }
+  .pkg-row .legend-item, .view-row .legend-item { flex: 1; min-width: 0; }
   .pin-btn {
     flex: 0 0 auto;
     background: none;

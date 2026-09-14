@@ -241,6 +241,26 @@
     expanded = new Set(expanded);
   }
 
+  // A CodeGraph `route` node is a synthetic single-line stub sitting at the
+  // decorator line (e.g. `@Get('health')`) — it has no signature, no call
+  // edges, and its "snippet" is just that one line. The actual handler
+  // (whose signature, body and DTOs everything below wants) is the very
+  // next method/function node in the same file. Resolved once per route
+  // and cached.
+  const handlerIdCache = new Map();
+  function findHandlerSymId(routeSymId) {
+    if (handlerIdCache.has(routeSymId)) return handlerIdCache.get(routeSymId);
+    const fileIdx = DATA.symbols[routeSymId][4];
+    let handlerId = null;
+    for (let i = routeSymId + 1; i < DATA.symbols.length && i < routeSymId + 20; i++) {
+      const sym = DATA.symbols[i];
+      if (sym[4] !== fileIdx || sym[1] === 'route') break;
+      if (sym[1] === 'method' || sym[1] === 'function') { handlerId = i; break; }
+    }
+    handlerIdCache.set(routeSymId, handlerId);
+    return handlerId;
+  }
+
   // ---- inline detail (built lazily on first expand, then cached) ----
   const detailCache = new Map();
   function routeDetail(r) {
@@ -340,25 +360,163 @@
     };
   }
 
+  // Finds the index matching the bracket at openIdx (any of `([{`), tracking
+  // all three depths together — good enough since real source is balanced.
+  function matchBracket(str, openIdx) {
+    let depth = 0;
+    for (let i = openIdx; i < str.length; i++) {
+      const c = str[i];
+      if (c === '(' || c === '[' || c === '{') depth++;
+      else if (c === ')' || c === ']' || c === '}') {
+        depth--;
+        if (depth === 0) return i;
+      }
+    }
+    return -1;
+  }
+  // Splits str on any of `sepChars` at top level only — occurrences inside
+  // `([{<...>}])` don't count. Used for parameter lists and inline object
+  // literal fields, both of which can nest generics/objects/arrays.
+  function splitTopLevel(str, sepChars = ',') {
+    const parts = [];
+    let depth = 0, start = 0;
+    for (let i = 0; i < str.length; i++) {
+      const c = str[i];
+      if (c === '(' || c === '[' || c === '{' || c === '<') depth++;
+      else if (c === ')' || c === ']' || c === '}' || c === '>') depth--;
+      else if (depth === 0 && sepChars.includes(c)) { parts.push(str.slice(start, i)); start = i + 1; }
+    }
+    parts.push(str.slice(start));
+    return parts;
+  }
+  // Strips leading parameter decorators (`@Body()`, `@Param('id', Pipe)`,
+  // possibly several in a row) so what's left is `name: Type`.
+  function stripParamDecorators(part) {
+    let s = part.trimStart();
+    while (s[0] === '@') {
+      const m = /^@[\w$]+/.exec(s);
+      if (!m) break;
+      let i = m[0].length;
+      if (s[i] === '(') {
+        const close = matchBracket(s, i);
+        i = close === -1 ? s.length : close + 1;
+      }
+      s = s.slice(i).trimStart();
+    }
+    return s;
+  }
+  // Splits a signature's parameter list, correctly, even when a param is
+  // preceded by one or more decorators that themselves contain parens
+  // (`@Body()`, `@Param('id', ParseIntPipe)`) — naive indexOf(')') stops at
+  // the decorator's own closing paren and mangles everything after it.
+  function paramParts(sig) {
+    if (!sig) return null;
+    const open = sig.indexOf('(');
+    if (open === -1) return null;
+    const close = matchBracket(sig, open);
+    if (close === -1) return null;
+    return { inner: sig.slice(open + 1, close), afterClose: sig.slice(close + 1) };
+  }
   // Type names from a signature's parameter list, primitives excluded —
   // `create(dto: CreateUserDto, user: AuthedUser)` → ['CreateUserDto', 'AuthedUser'].
-  const NON_DTO_TYPES = /^(string|number|boolean|any|unknown|never|void|object|symbol|bigint|Array|Promise|Record|Map|Set|Date|Request|Response|NextFunction|Next|Params|Param|Body|Query|Headers|IPartials)$/i;
-  function signatureParamTypes(sig) {
-    if (!sig) return [];
-    const open = sig.indexOf('(');
-    const close = sig.indexOf(')');
-    if (open === -1 || close === -1 || close < open) return [];
+  const NON_DTO_TYPES = /^(string|number|boolean|any|unknown|never|void|object|symbol|bigint|Array|Promise|Record|Map|Set|Date|Request|Response|NextFunction|Next|Params|Param|Body|Query|Headers|IPartials|String|Number|Boolean)$/i;
+  // `type: XDto` (or `type: [XDto]` for an array response) out of a
+  // `@ApiBody({...})`/`@ApiResponse({...})`-shaped decorator call — the
+  // explicit, documented wire type, when the project uses
+  // @nestjs/swagger (or another `type:`-carrying decorator convention).
+  // Scans `text` (expected to be just the decorator lines, from
+  // leadingDecoratorText) for every call to one of `decoratorNames` and
+  // pulls the `type:` property out of its (possibly nested-brace) argument.
+  function decoratorTypeNames(text, decoratorNames) {
     const out = [];
-    for (const part of sig.slice(open + 1, close).split(',')) {
-      const m = /^\s*(?:\.\.\.)?[\w$]+\??\s*:\s*([A-Za-z_$][\w$]*)/.exec(part.trim());
+    const re = new RegExp(`@(?:${decoratorNames})\\b\\s*`, 'g');
+    let m;
+    while ((m = re.exec(text))) {
+      if (text[re.lastIndex] !== '(') continue;
+      const close = matchBracket(text, re.lastIndex);
+      if (close === -1) continue;
+      const argText = text.slice(re.lastIndex + 1, close);
+      const tm = /\btype\s*:\s*\[?\s*([A-Za-z_$][\w$]*)/.exec(argText);
+      if (tm && !NON_DTO_TYPES.test(tm[1]) && out.indexOf(tm[1]) === -1) out.push(tm[1]);
+      re.lastIndex = close + 1;
+    }
+    return out;
+  }
+  function signatureParamTypes(sig) {
+    const pp = paramParts(sig);
+    if (!pp) return [];
+    const out = [];
+    for (const rawPart of splitTopLevel(pp.inner)) {
+      const part = stripParamDecorators(rawPart.trim());
+      const m = /^(?:\.\.\.)?[\w$]+\??\s*:\s*([A-Za-z_$][\w$]*)/.exec(part);
       if (!m || NON_DTO_TYPES.test(m[1])) continue;
       out.push(m[1]);
     }
     return out;
   }
+  // A body/data/dto/etc. param typed as an inline object literal instead of
+  // a named DTO — `@Body() body: { key: string; value?: number }` — has no
+  // symbol to look up, so its fields are parsed straight out of the
+  // signature text. Only one is returned (first match wins).
+  const INLINE_PARAM_NAME_RE = /create|update|input|body|payload|dto|request|data/i;
+  function parseInlineObjectFields(braceText) {
+    const inner = braceText.trim().replace(/^\{/, '').replace(/\}$/, '');
+    const fields = [];
+    for (const raw of splitTopLevel(inner, ';,')) {
+      const line = raw.trim();
+      if (!line) continue;
+      const m = /^(?:readonly\s+)?([A-Za-z_$][\w$]*)(\?)?\s*:\s*([\s\S]+)$/.exec(line);
+      if (!m) continue;
+      fields.push({ name: m[1], type: m[3].trim().replace(/\s+/g, ' '), required: m[2] !== '?' });
+      if (fields.length >= 20) break;
+    }
+    return fields;
+  }
+  function signatureInlineBodyType(sig) {
+    const pp = paramParts(sig);
+    if (!pp) return null;
+    for (const rawPart of splitTopLevel(pp.inner)) {
+      const part = stripParamDecorators(rawPart.trim());
+      const m = /^(?:\.\.\.)?([\w$]+)\??\s*:\s*(\{[\s\S]*\})\s*$/.exec(part.trim());
+      if (!m || !INLINE_PARAM_NAME_RE.test(m[1])) continue;
+      const fields = parseInlineObjectFields(m[2]);
+      if (fields.length) return { name: m[1], text: m[2], fields };
+    }
+    return null;
+  }
+  // Return type from the signature text itself — `return_type` on the node
+  // is frequently blank for methods relying on inference or decorated
+  // params (e.g. every NestJS controller method sampled had it empty),
+  // even when the signature spells the type out after the closing paren.
+  function signatureReturnType(sig) {
+    const pp = paramParts(sig);
+    if (!pp) return '';
+    const m = /^\s*:\s*(.+)$/s.exec(pp.afterClose.trim());
+    return m ? m[1].trim().replace(/[;{]\s*$/, '') : '';
+  }
   function stripPromise(t) {
-    const m = /^Promise<([^>]+)>$/.exec(t || '');
+    const m = /^Promise<([\s\S]+)>$/.exec(t || '');
     return m ? m[1].trim() : (t || '').trim();
+  }
+  // One level of generic unwrap — `IApiResponse<UserDto>` → `UserDto` —
+  // covers the common `ApiResponse<T>`/`Wrapper<T>` response envelopes.
+  function unwrapGeneric(t) {
+    const m = /^[A-Za-z_$][\w$]*<([\s\S]+)>$/.exec((t || '').trim());
+    return m ? m[1].trim() : null;
+  }
+  // Candidate type names to try against the schema index, in order:
+  // the type as written, then one level of generic unwrap, then another
+  // (covers `Promise<IApiResponse<UserDto>>` after stripPromise already ran).
+  function returnTypeCandidates(t) {
+    const out = [];
+    let cur = (t || '').trim();
+    for (let i = 0; i < 3 && cur; i++) {
+      if (out.indexOf(cur) === -1) out.push(cur);
+      const un = unwrapGeneric(cur);
+      if (!un || un === cur) break;
+      cur = un;
+    }
+    return out;
   }
   // `CreateUserSchema.parse(req.body)` → 'CreateUserSchema'.
   function zodParseNames(snippet) {
@@ -400,8 +558,9 @@
   const REQUEST_NAME_RE = /create|update|input|body|payload|dto|request|params|query|args/i;
 
   function buildDetail(r) {
-    const s = DATA.symbols[r.symId];
-    const callees = (symOutAdj.get(r.symId) || [])
+    const handlerId = findHandlerSymId(r.symId) ?? r.symId;
+    const s = DATA.symbols[handlerId];
+    const callees = (symOutAdj.get(handlerId) || [])
       .slice().sort((a, b) => b[1] - a[1])
       .slice(0, MAX_CALLEES)
       .map(([id, w]) => ({ id, w }));
@@ -411,7 +570,7 @@
     // Usage-edge schemas (precise provenance) from the handler + callees.
     const edgeEntries = [];
     const edgeSeen = new Set();
-    for (const src of [r.symId, ...callees.map(c => c.id)]) {
+    for (const src of [handlerId, ...callees.map(c => c.id)]) {
       for (const [tid, kind] of (symUsageOutAdj.get(src) || [])) {
         if (edgeSeen.has(tid)) continue;
         if (kind !== USAGE_REFERENCES && kind !== USAGE_INSTANTIATES) continue;
@@ -430,6 +589,14 @@
       if (e.tid != null) { if (usedTids.has(e.tid)) return; usedTids.add(e.tid); }
       if (request.length < MAX_TYPES) request.push(e);
     };
+    // Explicit, documented wire types beat everything else: @ApiBody({ type:
+    // X }) (nestjs/swagger) is authored specifically to describe the
+    // request, so it's tried first.
+    const ownDecoratorText = leadingDecoratorText(s[5]);
+    for (const n of decoratorTypeNames(ownDecoratorText, 'ApiBody')) {
+      const tid = lookupSchema(n);
+      if (tid != null) pushReq(schemaEntry(tid, '@ApiBody'));
+    }
     for (const n of zodParseNames(s[5])) {
       const tid = lookupSchema(n);
       if (tid != null) pushReq(schemaEntry(tid, 'z.parse() in handler'));
@@ -446,6 +613,15 @@
       const tid = lookupSchema(n);
       if (tid != null) pushReq(schemaEntry(tid, 'signature param'));
     }
+    // Fallback: a body/dto/etc. param typed as an inline object literal
+    // (no named DTO to look up) — parse its fields straight off the
+    // signature text.
+    if (!request.length) {
+      const inline = signatureInlineBodyType(s[7]) || calleeSyms.map(cs => signatureInlineBodyType(cs[7])).find(Boolean);
+      if (inline) {
+        pushReq({ tid: null, name: inline.name, kind: 'inline', snippet: inline.text, via: 'signature param (inline)', source: 'type', fields: inline.fields });
+      }
+    }
 
     // Response shapes: return types (handler + service callees), types
     // constructed with `new X()`, res.json({ ... }) literal keys, then any
@@ -455,9 +631,15 @@
       if (e.tid != null) { if (usedTids.has(e.tid)) return; usedTids.add(e.tid); }
       if (response.length < MAX_TYPES) response.push(e);
     };
+    // Same for the response: @ApiResponse/@ApiOkResponse/@ApiCreatedResponse/
+    // @ApiAcceptedResponse({ type: X }) is the documented success shape.
+    for (const n of decoratorTypeNames(ownDecoratorText, 'ApiResponse|ApiOkResponse|ApiCreatedResponse|ApiAcceptedResponse')) {
+      const tid = lookupSchema(n);
+      if (tid != null) pushRes(schemaEntry(tid, '@ApiResponse'));
+    }
     const returnNames = [...new Set([
-      stripPromise(s[8]),
-      ...calleeSyms.map(cs => stripPromise(cs[8])),
+      ...returnTypeCandidates(stripPromise(s[8] || signatureReturnType(s[7]))),
+      ...calleeSyms.flatMap(cs => returnTypeCandidates(stripPromise(cs[8] || signatureReturnType(cs[7])))),
     ].filter(Boolean))];
     for (const n of returnNames) {
       const tid = lookupSchema(n);
@@ -591,24 +773,47 @@
     [/internal|servererror|unexpected/i, 500], [/notimplemented/i, 501],
     [/unavailable|serviceunavailable/i, 503],
   ];
-  // Scans the handler snippet + decorators for every status code it can
-  // return: explicit `.status(N)` calls, @HttpCode decorators, an implied
-  // 200 from a bare res.json(), and thrown error classes (mapped to their
-  // conventional status, or listed as a bare throw).
+  // NestJS/Express `HttpStatus.OK`-style symbolic status names → their code.
+  // Most handlers write the enum member, not the bare number.
+  const HTTP_STATUS_NAME = {
+    OK: 200, CREATED: 201, ACCEPTED: 202, NO_CONTENT: 204,
+    MOVED_PERMANENTLY: 301, FOUND: 302, NOT_MODIFIED: 304,
+    BAD_REQUEST: 400, UNAUTHORIZED: 401, FORBIDDEN: 403, NOT_FOUND: 404,
+    METHOD_NOT_ALLOWED: 405, NOT_ACCEPTABLE: 406, CONFLICT: 409, GONE: 410,
+    PAYLOAD_TOO_LARGE: 413, UNSUPPORTED_MEDIA_TYPE: 415,
+    UNPROCESSABLE_ENTITY: 422, TOO_MANY_REQUESTS: 429,
+    INTERNAL_SERVER_ERROR: 500, NOT_IMPLEMENTED: 501, BAD_GATEWAY: 502,
+    SERVICE_UNAVAILABLE: 503, GATEWAY_TIMEOUT: 504,
+  };
+  // Scans the handler snippet (which, thanks to the decorator-widened
+  // snippet capture, now includes its full `@Foo(...)` stack above the
+  // declaration — not just its body) for every status code it can return:
+  // `@HttpCode`/`@ResponseStatus` (numeric or `HttpStatus.NAME` symbolic),
+  // explicit `.status(N)` calls, an implied 200 from a bare res.json(), and
+  // thrown error classes (mapped to their conventional status, or listed as
+  // a bare throw). Falls back to the structured `decorators` column too, for
+  // indexers that do populate it.
   const statusCache = new Map();
   function scanStatuses(symId) {
     if (statusCache.has(symId)) return statusCache.get(symId);
-    const s = DATA.symbols[symId];
+    const s = DATA.symbols[findHandlerSymId(symId) ?? symId];
     const snip = s[5] || '';
     const codes = new Map(); // code -> { via }
     const add = (code, via) => { if (!codes.has(code)) codes.set(code, { via }); };
+    const HTTPCODE_RE = /@?(?:HttpCode|ResponseStatus)\(\s*(?:(\d{3})|(?:HttpStatus|StatusCodes)\.([A-Z_]+))\s*\)/g;
     for (const d of (s[14] || [])) {
-      const m = /@?HttpCode\(\s*(\d{3})\s*\)/.exec(String(d));
-      if (m) add(Number(m[1]), '@HttpCode');
+      HTTPCODE_RE.lastIndex = 0;
+      const m = HTTPCODE_RE.exec(String(d));
+      if (m) add(m[1] ? Number(m[1]) : HTTP_STATUS_NAME[m[2]], '@HttpCode');
     }
-    const STATUS_RE = /\.status\(\s*(\d{3})\s*\)/g;
     let m;
-    while ((m = STATUS_RE.exec(snip))) add(Number(m[1]), 'res.status');
+    HTTPCODE_RE.lastIndex = 0;
+    while ((m = HTTPCODE_RE.exec(snip))) {
+      const code = m[1] ? Number(m[1]) : HTTP_STATUS_NAME[m[2]];
+      if (code) add(code, '@HttpCode');
+    }
+    const STATUS_RE = /\.status\(\s*(?:(\d{3})|(?:HttpStatus|StatusCodes)\.([A-Z_]+))\s*\)/g;
+    while ((m = STATUS_RE.exec(snip))) add(m[1] ? Number(m[1]) : HTTP_STATUS_NAME[m[2]], 'res.status');
     if (!codes.size && /(?:res|reply)\.json\(|NextResponse\.json\(|Response\.json\(|ctx\.json\(/.test(snip)) add(200, 'implied');
     const throws = [];
     const THROW_RE = /throw\s+new\s+([A-Z]\w+)/g;
@@ -627,21 +832,56 @@
     return out;
   }
 
+  // The leading `@Foo(...)`/`@Foo` block at the top of a snippet (decorators
+  // only — stops at the first line that isn't part of one, i.e. the actual
+  // declaration). Scanning just this instead of the whole snippet keeps
+  // auth/status detection from tripping on unrelated body text (a variable
+  // named `permission`, the word "protected" in a comment, etc).
+  function leadingDecoratorText(snip) {
+    const lines = (snip || '').split('\n');
+    let depth = 0, end = 0;
+    for (; end < lines.length; end++) {
+      const line = lines[end];
+      if (depth === 0 && !line.trim().startsWith('@')) break;
+      for (const c of line) {
+        if (c === '(' || c === '[' || c === '{') depth++;
+        else if (c === ')' || c === ']' || c === '}') depth--;
+      }
+    }
+    return lines.slice(0, end).join('\n');
+  }
+  // Class-level decorators (`@UseGuards(...)` on the controller itself)
+  // apply to every method in it — found by walking back to the nearest
+  // preceding class/component node in the same file.
+  function enclosingClassDecoratorText(symId) {
+    const fileIdx = DATA.symbols[symId][4];
+    for (let i = symId - 1; i >= 0; i--) {
+      const sym = DATA.symbols[i];
+      if (sym[4] !== fileIdx) break;
+      if (sym[1] === 'class' || sym[1] === 'component') return leadingDecoratorText(sym[5] || '');
+    }
+    return '';
+  }
   // ---- P0: auth detection ----
   // Returns { level: 'public' | 'guarded', via } or null when nothing
   // auth-shaped is visible on the handler (unknown — no badge shown).
   const authCache = new Map();
   function authInfo(symId) {
     if (authCache.has(symId)) return authCache.get(symId);
-    const s = DATA.symbols[symId];
+    const handlerId = findHandlerSymId(symId) ?? symId;
+    const s = DATA.symbols[handlerId];
     const decors = (s[14] || []).map(String);
     const dec = decors.join(' ');
     const snip = s[5] || '';
+    const ownDecoratorText = leadingDecoratorText(snip);
     let out = null;
-    if (/(^|[^A-Za-z])@?Public\b/.test(dec)) out = { level: 'public', via: '@Public' };
+    // A method-level @Public() (or equivalent) conventionally overrides any
+    // class-level guard, so it's checked first and alone.
+    if (/(^|[^A-Za-z])@?Public\b/.test(`${dec} ${ownDecoratorText}`)) out = { level: 'public', via: '@Public' };
     if (!out) {
-      const guard = decors.find(d => /guard|auth|roles|permission|protected|apikey|throttle/i.test(d));
-      if (guard) out = { level: 'guarded', via: guard.replace(/^@?\W*/, '') };
+      const guardText = `${dec} ${ownDecoratorText} ${enclosingClassDecoratorText(handlerId)}`;
+      const gm = /@?(UseGuards|AuthGuard|Roles|Permissions|RequireAuth|Authorized|Protected|ApiBearerAuth|ApiSecurity|ApiOAuth2|ApiKeyAuth)\b/i.exec(guardText);
+      if (gm) out = { level: 'guarded', via: gm[1] };
     }
     if (!out) {
       if (/(?:req|request|ctx)\.user\b|\bBearer\b|\bJWT\b|verifyToken|requireAuth|isAuthenticated|currentUser|getUserFromRequest/.test(snip)) {

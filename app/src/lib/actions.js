@@ -4,6 +4,7 @@ import {
   fileOutAdj, fileInAdj, pkgOutAdj, pkgInAdj, symOutAdj, symInAdj, focusRequest,
   flowRoot, flowDirection, flowDepth, flowTrail, flowFeatureFilter, packageFilter,
   allFlowsRoot, allFlowsCallerPaths, allFlowsCalleePaths, allFlowsCaps, allFlowsTruncated,
+  pinnedViews,
 } from './stores.js';
 import { bfs, enumerateAllPaths } from './graph.js';
 
@@ -43,6 +44,11 @@ export function toggleListView(name) {
   view.set(get(view) === name ? 'packages' : name);
   selectedFile.set(null);
   selectedSymbol.set(null);
+}
+
+/** Adds or removes a view from the sidebar's pinned (always-visible) strip. */
+export function togglePinnedView(name) {
+  pinnedViews.update(cur => cur.includes(name) ? cur.filter(v => v !== name) : [...cur, name]);
 }
 
 // Switches to the file's package (if needed), selects the file + symbol so

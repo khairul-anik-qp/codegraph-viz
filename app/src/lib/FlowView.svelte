@@ -281,6 +281,11 @@
       all paths →
     </button>
   </div>
+{:else}
+  <div class="flow-empty">
+    <p>No symbol selected yet.</p>
+    <p class="flow-empty-sub">Search a function in the sidebar and click <b>flow</b>, or click any node in Packages/Files.</p>
+  </div>
 {/if}
 <svg id="flow-svg" bind:this={svgEl}>
   <g bind:this={gEl}></g>
@@ -303,6 +308,21 @@
     align-items: center;
     gap: 8px;
   }
+  .flow-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 4px;
+    color: var(--muted);
+    pointer-events: none;
+  }
+  .flow-empty p { margin: 0; font-size: 13px; }
+  .flow-empty-sub { max-width: 360px; }
+  .flow-empty-sub b { color: var(--text); }
   .all-flows-btn {
     background: var(--surface);
     color: var(--accent);

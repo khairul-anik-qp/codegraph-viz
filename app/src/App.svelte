@@ -57,6 +57,8 @@
     ? 'Whether this export can be trusted right now &mdash; stale files and imports that never resolved.'
     : $view === 'domains'
     ? 'Business/feature domains grouped by folder depth &middot; click an entry point to open its full flow, or any step in its preview chain to inspect that symbol.'
+    : $view === 'flow' && $flowRoot === null
+    ? 'Search a function above (or click a node in Packages/Files) to trace its call flow.'
     : 'Click a node to make it the new root &middot; scroll to zoom &middot; drag to pan.';
 
   // Whether a keydown event's target is a text input the user is typing into,

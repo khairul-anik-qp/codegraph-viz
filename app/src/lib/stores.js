@@ -140,6 +140,32 @@ export const view = writable('packages'); // 'packages' | 'files' | 'flow' | 'al
 // Index of the package currently open in the files view, or null when no package is open.
 export const currentPkg = writable(null);
 
+// Views the user has pinned into the sidebar's always-visible primary strip
+// (see Sidebar.svelte) — everything else lives in the collapsible "More
+// views" catalog below it. 'flow' starts pinned: it's the single-symbol
+// call-flow diagram, one of the two core exploration modes (alongside the
+// packages graph, which is always reachable via the header breadcrumb and
+// doesn't need a nav slot of its own), but previously had no nav entry at
+// all — reachable only by clicking a node or a search result's "flow"
+// button. Persisted globally, same as detailMode/themeMode: a reading
+// preference, not project data.
+const PINNED_VIEWS_KEY = 'codegraph-pinned-views';
+/** Reads the persisted set of pinned sidebar views, defaulting to just 'flow' when unset or unavailable. */
+function loadPinnedViews() {
+  if (typeof localStorage === 'undefined') return ['flow'];
+  try {
+    const raw = JSON.parse(localStorage.getItem(PINNED_VIEWS_KEY));
+    return Array.isArray(raw) ? raw : ['flow'];
+  } catch { return ['flow']; }
+}
+/** Persists the pinned-views list so it survives page reloads. */
+function savePinnedViews(list) {
+  if (typeof localStorage === 'undefined') return;
+  try { localStorage.setItem(PINNED_VIEWS_KEY, JSON.stringify(list)); } catch { /* quota */ }
+}
+export const pinnedViews = writable(loadPinnedViews());
+pinnedViews.subscribe(savePinnedViews);
+
 // ---------- domain view ----------
 // Folder-depth used to group packages into coarse "domains" (see
 // groupPackagesByDepth in graph.js). Ephemeral — NOT persisted to

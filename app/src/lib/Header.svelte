@@ -61,11 +61,29 @@
     {:else if $view === 'pkgSummary'}
       <span class="sep">/</span>
       <span class="crumb current">pkg summary</span>
+    {:else if $view === 'routes'}
+      <span class="sep">/</span>
+      <span class="crumb current">API surface</span>
+    {:else if $view === 'structure'}
+      <span class="sep">/</span>
+      <span class="crumb current">structure</span>
+    {:else if $view === 'docs'}
+      <span class="sep">/</span>
+      <span class="crumb current">docs coverage</span>
+    {:else if $view === 'indexHealth'}
+      <span class="sep">/</span>
+      <span class="crumb current">index health</span>
+    {:else if $view === 'domains'}
+      <span class="sep">/</span>
+      <span class="crumb current">domains</span>
     {:else if $view === 'allFlows' && $allFlowsRoot !== null}
       <span class="sep">/</span>
       <button class="crumb" on:click={() => openFlow($allFlowsRoot, 'out')}>flow</button>
       <span class="sep">/</span>
       <span class="crumb current">all paths: {DATA.symbols[$allFlowsRoot][0]}</span>
+    {:else if $view === 'flow' && $flowRoot === null}
+      <span class="sep">/</span>
+      <span class="crumb current">flow</span>
     {:else if $view === 'flow' && $flowRoot !== null}
       <span class="sep">/</span>
       <span class="crumb">flow: {$flowDirection === 'out' ? '→ calls' : '← called by'}</span>
