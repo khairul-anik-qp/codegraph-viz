@@ -166,6 +166,27 @@ function savePinnedViews(list) {
 export const pinnedViews = writable(loadPinnedViews());
 pinnedViews.subscribe(savePinnedViews);
 
+// ---------- primary sidebar ----------
+// Whether the left nav (Sidebar.svelte) is expanded or collapsed to a thin
+// strip, to reclaim canvas width. Persisted globally, same as
+// detailMode/themeMode: a reading preference, not project data.
+const SIDEBAR_OPEN_KEY = 'codegraph-sidebar-open-state';
+/** Reads the persisted sidebar open/collapsed state, defaulting to open when unset or unavailable. */
+function loadSidebarOpen() {
+  if (typeof localStorage === 'undefined') return true;
+  try {
+    const raw = localStorage.getItem(SIDEBAR_OPEN_KEY);
+    return raw === null ? true : raw === '1';
+  } catch { return true; }
+}
+/** Persists the sidebar open/collapsed state so it survives page reloads. */
+function saveSidebarOpen(open) {
+  if (typeof localStorage === 'undefined') return;
+  try { localStorage.setItem(SIDEBAR_OPEN_KEY, open ? '1' : '0'); } catch { /* quota */ }
+}
+export const sidebarOpen = writable(loadSidebarOpen());
+sidebarOpen.subscribe(saveSidebarOpen);
+
 // ---------- domain view ----------
 // Folder-depth used to group packages into coarse "domains" (see
 // groupPackagesByDepth in graph.js). Ephemeral — NOT persisted to

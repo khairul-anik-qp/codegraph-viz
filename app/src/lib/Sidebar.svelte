@@ -1,19 +1,18 @@
 <script>
   // Left navigation panel: search, view switcher, flow/isolate controls, edge
-  // kind toggles, and the package list — with collapsible, persisted sections.
-  import { writable, derived } from 'svelte/store';
+  // kind toggles, and the package list.
   import {
-    DATA, view, isolate, hop, direction, showImports, showCalls, searchQuery,
+    DATA, view, isolate, hop, direction, showImports, showCalls,
     flowRoot, flowDirection, flowDepth, flowTrail, flowFeatureFilter,
     symOutAdj, symInAdj, packageFilter, symUsageInAdj,
-    symbolKindFilter, detailMode, domainDepth, pinnedViews,
+    detailMode, domainDepth, pinnedViews, sidebarOpen,
   } from './stores.js';
   import {
-    setIsolate, clearIsolate, openPackage, jumpToFile, jumpToSymbol,
-    openFlow, openAllFlows, flowBack, setFlowDirection, setFlowFeatureFilter,
+    setIsolate, clearIsolate, openPackage,
+    flowBack, setFlowDirection, setFlowFeatureFilter,
     togglePackageFocus, clearPackageFocus, toggleListView, togglePinnedView,
   } from './actions.js';
-  import { pkgColor, shortPkg, displayName, featureGroup, isEntryPoint, groupPackagesByDepth } from './graph.js';
+  import { pkgColor, shortPkg, featureGroup, isEntryPoint, groupPackagesByDepth } from './graph.js';
 
   const HOPS = [1, 2, 3, 99];
   const DIRS = [
@@ -62,72 +61,25 @@
     return n;
   })();
 
+
   // Every standalone view reachable from this nav, in one place — each
   // rendered identically whether it's pinned (always-visible "Primary"
   // strip) or not (collapsible "More views" catalog below it). 'packages'
   // isn't listed: it's the permanent home view, already one click away via
   // the header's "Packages" breadcrumb, so it doesn't need a nav slot too.
   $: viewCatalog = [
-    { key: 'flow', label: 'Flow', tip: 'Single-symbol call flow — search a function above or click any graph node, then trace what it calls', count: null },
+    { key: 'flow', label: 'Flow', tip: 'Single-symbol call flow — search a function in the flow screen or click any graph node, then trace what it calls', count: null },
     { key: 'routes', label: 'API surface', tip: 'Every REST/GraphQL/WebSocket route, grouped by controller', count: routeCount },
     { key: 'domains', label: 'Domains', tip: 'Business/feature domains grouped by folder depth, with entry points and call-chain previews', count: domainCount },
     { key: 'hubs', label: 'Hubs', tip: 'Top-N most-called functions — refactor targets', count: 200 },
     { key: 'entryPoints', label: 'Entry points', tip: 'Exported zero-callers + framework entry markers', count: entryPointCount },
     { key: 'structure', label: 'Structure', tip: 'Class inheritance (extends/implements) and object construction (new X())', count: hierarchyGroupCount },
-    { key: 'pkgSummary', label: 'Pkg summary', tip: 'Per-package aggregate stats and top hubs', count: DATA.packages.length },
+    { key: 'pkgSummary', label: 'Pkg summary', tip: 'Per-package aggregate stats: size, docs coverage, deps, dead code, top hubs, complexity hotspots', count: DATA.packages.length },
     { key: 'docs', label: 'Docs coverage', tip: 'Docstring coverage per package, worst first', count: undocumentedCount },
     { key: 'indexHealth', label: 'Index health', tip: 'Whether this export can be trusted right now — stale files, unresolved imports', count: null },
   ];
   $: pinnedCatalog = viewCatalog.filter(v => $pinnedViews.includes(v.key));
   $: unpinnedCatalog = viewCatalog.filter(v => !$pinnedViews.includes(v.key));
-
-  // Pre-collect every distinct symbol-kind present in DATA so the filter
-  // chips below show only kinds that actually exist in this codebase.
-  $: availableKinds = (() => {
-    const set = new Set();
-    for (const s of DATA.symbols) set.add(s[1]);
-    return [...set].sort();
-  })();
-
-  // Adds/removes a symbol kind from the active kind filter, clearing the
-  // filter entirely once every kind (or none) is selected.
-  function toggleKind(k) {
-    symbolKindFilter.update(cur => {
-      const next = new Set(cur || []);
-      if (next.has(k)) next.delete(k); else next.add(k);
-      return next.size === 0 || next.size === availableKinds.length ? null : next;
-    });
-  }
-  // Resets the symbol-kind filter so search shows every kind again.
-  function clearKindFilter() { symbolKindFilter.set(null); }
-
-  // File hits and symbol (function/class/etc) hits, interleaved with symbols
-  // first — searching a function name is the more common "who calls this"
-  // workflow this search box exists for.
-  $: fileHits = (() => {
-    const q = $searchQuery.trim().toLowerCase();
-    if (!q) return [];
-    const out = [];
-    for (let i = 0; i < DATA.files.length && out.length < 20; i++) {
-      if ($packageFilter && !$packageFilter.has(DATA.files[i][1])) continue;
-      if (DATA.files[i][0].toLowerCase().includes(q)) out.push(i);
-    }
-    return out;
-  })();
-  $: symbolHits = (() => {
-    const q = $searchQuery.trim();
-    if (!q) return [];
-    const out = [];
-    const kinds = $symbolKindFilter;
-    const needle = q.toLowerCase();
-    for (let i = 0; i < DATA.symbols.length && out.length < 20; i++) {
-      const s = DATA.symbols[i];
-      if ($packageFilter && !$packageFilter.has(DATA.files[s[4]][1])) continue;
-      if (kinds && !kinds.has(s[1])) continue;
-      if (s[0] && s[0].toLowerCase().includes(needle)) out.push(i);
-    }
-    return out;
-  })();
 
   // Groups the current root's direct children (one hop, in the active
   // direction) by Features/<name> folder — the natural "which flow" label
@@ -164,108 +116,23 @@
     if ($isolate) setIsolate($isolate.type, $isolate.idx, $isolate.name);
   }
 
-  // Accordion state per section. Persisted in localStorage so collapsed
-  // sections stay collapsed across page reloads. The single source of
-  // truth for "should this section be open by default" is DEFAULT_OPEN.
-  //
-  // Critical Svelte detail: `isOpen` MUST be a derived store (not a plain
-  // function) so that templates using `$isOpen(...)` auto-subscribe to it.
-  // A plain function calling `get(openSections)` from inside `{#if ...}`
-  // does NOT register a reactive dependency — clicks update the store but
-  // the template never re-evaluates. This was the root cause of the
-  // "clicking does nothing" bug. As a derived store, `$isOpen` re-emits
-  // a new function whenever openSections changes, and Svelte picks it up.
-  const OPEN_SECTIONS_KEY = 'codegraph-sidebar-open';
-  const DEFAULT_OPEN = {
-    moreViews: true,
-    flowControls: true,
-    flowsFromRoot: true,
-    isolate: true,
-    edgeKinds: true,
-    packages: false,
-  };
-  const MIGRATE_KEYS = ['packages'];
-  // Reads the persisted accordion open/closed state from localStorage,
-  // dropping stale entries for keys whose default has since changed.
-  function loadOpenSections() {
-    if (typeof localStorage === 'undefined') return {};
-    try {
-      const raw = JSON.parse(localStorage.getItem(OPEN_SECTIONS_KEY) || '{}') || {};
-      let migrated = false;
-      for (const k of MIGRATE_KEYS) {
-        if (k in raw && raw[k] !== DEFAULT_OPEN[k]) { delete raw[k]; migrated = true; }
-      }
-      if (migrated) {
-        try { localStorage.setItem(OPEN_SECTIONS_KEY, JSON.stringify(raw)); } catch { /* ignore */ }
-      }
-      return raw;
-    } catch { return {}; }
-  }
-  const openSections = writable(loadOpenSections());
-  // Derived: a lookup function. `$isOpen` in the template subscribes the
-  // template to changes; the function then re-evaluates with fresh state.
-  const isOpen = derived(openSections, ($m) => (key) =>
-    key in $m ? $m[key] : DEFAULT_OPEN[key] !== false
-  );
-  // Flips one accordion section's open/closed state and persists it.
-  function toggleSection(key) {
-    openSections.update(m => {
-      const current = key in m ? m[key] : DEFAULT_OPEN[key] !== false;
-      const next = { ...m, [key]: !current };
-      if (typeof localStorage !== 'undefined') {
-        try { localStorage.setItem(OPEN_SECTIONS_KEY, JSON.stringify(next)); } catch { /* quota */ }
-      }
-      return next;
-    });
-  }
 </script>
 
-<aside>
+<aside class:collapsed={!$sidebarOpen}>
+  <button
+    type="button"
+    class="sidebar-toggle"
+    data-tip={$sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+    aria-label={$sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+    on:click={() => sidebarOpen.update(v => !v)}
+  >{$sidebarOpen ? '⟨' : '⟩'}</button>
+
+  {#if $sidebarOpen}
   <div class="panel-title-row detail-mode-row">
     <span class="section-title">Detail mode</span>
     <div class="detail-mode-toggle">
       <button type="button" class:active={$detailMode === 'overview'} on:click={() => detailMode.set('overview')}>Overview</button>
       <button type="button" class:active={$detailMode === 'deepdive'} on:click={() => detailMode.set('deepdive')}>Deep-dive</button>
-    </div>
-  </div>
-
-  <div class="section section-search">
-    <div class="section-head">
-      <span class="section-title">Search files &amp; functions</span>
-    </div>
-    <div class="section-body">
-      <input type="text" placeholder="e.g. AddEditOutcomeModal or formatDate" autocomplete="off" bind:value={$searchQuery} />
-      <div class="kind-chips">
-        {#each availableKinds as k (k)}
-          <button
-            class="kind-chip"
-            class:active={$symbolKindFilter && $symbolKindFilter.has(k)}
-            data-tip="Toggle filter: show only symbols of kind '{k}'"
-            on:click={() => toggleKind(k)}
-          >{k}</button>
-        {/each}
-        {#if $symbolKindFilter}
-          <button class="kind-chip clear" on:click={clearKindFilter} data-tip="Clear kind filter" aria-label="Clear kind filter">✕</button>
-        {/if}
-      </div>
-      <div class="search-results">
-        {#each symbolHits as symId (symId)}
-          <div class="search-hit-row">
-            <button class="search-hit" data-tip={DATA.symbols[symId][6] || null} on:click={() => jumpToSymbol(symId)}>
-              <span class="mono" style="color:var(--accent); font-weight:700;">{DATA.symbols[symId][0]}</span>
-              <span style="color:var(--muted);"> · {DATA.symbols[symId][1]} · {displayName(DATA.files[DATA.symbols[symId][4]][0])}</span>
-              {#if DATA.symbols[symId][6]}<div class="hit-doc">{DATA.symbols[symId][6].split('\n')[0]}</div>{/if}
-            </button>
-            <button class="flow-btn" data-tip="View single call flow" on:click={() => openFlow(symId, 'out')}>flow</button>
-            <button class="flow-btn" data-tip="Enumerate every path through this symbol (callers + callees)" on:click={() => openAllFlows(symId)}>all</button>
-          </div>
-        {/each}
-        {#each fileHits as i (i)}
-          <button class="search-hit" style="color:{pkgColor(DATA.files[i][1])}" on:click={() => jumpToFile(i)}>
-            {DATA.files[i][0]}
-          </button>
-        {/each}
-      </div>
     </div>
   </div>
 
@@ -290,190 +157,188 @@
 
   <div class="section">
     <div class="section-head">
-      <button type="button" class="section-toggle" on:click={() => toggleSection('moreViews')} aria-expanded={$isOpen('moreViews')}>
-        <span class="section-chev" class:open={$isOpen('moreViews')}>▸</span>
-        <span class="section-title">More views</span>
-      </button>
+      <span class="section-title">More views</span>
     </div>
-    {#if $isOpen('moreViews')}
-      <div class="section-body">
-        {#each unpinnedCatalog as v (v.key)}
-          <div class="view-row">
-            <button class="legend-item" class:active={$view === v.key} data-tip={v.tip} on:click={() => toggleListView(v.key)}>
-              <span>{v.label}</span>
-              {#if v.count != null}<span class="count">{v.count}</span>{/if}
-            </button>
-            <button class="pin-btn" data-tip="Pin to Primary" aria-label="Pin {v.label}" on:click={() => togglePinnedView(v.key)}>☆</button>
-          </div>
-        {/each}
-      </div>
-    {/if}
+    <div class="section-body">
+      {#each unpinnedCatalog as v (v.key)}
+        <div class="view-row">
+          <button class="legend-item" class:active={$view === v.key} data-tip={v.tip} on:click={() => toggleListView(v.key)}>
+            <span>{v.label}</span>
+            {#if v.count != null}<span class="count">{v.count}</span>{/if}
+          </button>
+          <button class="pin-btn" data-tip="Pin to Primary" aria-label="Pin {v.label}" on:click={() => togglePinnedView(v.key)}>☆</button>
+        </div>
+      {/each}
+    </div>
   </div>
 
   {#if $view === 'flow'}
     <div class="section">
       <div class="section-head">
-        <button type="button" class="section-toggle" on:click={() => toggleSection('flowControls')} aria-expanded={$isOpen('flowControls')}>
-          <span class="section-chev" class:open={$isOpen('flowControls')}>▸</span>
-          <span class="section-title">Flow diagram</span>
-          {#if $flowTrail.length > 0}<span class="section-meta" data-tip="back steps">{$flowTrail.length}</span>{/if}
-        </button>
+        <span class="section-title">Flow diagram</span>
+        {#if $flowTrail.length > 0}<span class="section-meta" data-tip="back steps">{$flowTrail.length}</span>{/if}
       </div>
-      {#if $isOpen('flowControls')}
-        <div class="section-body">
-          {#if $flowTrail.length > 0}
-            <button class="pill" style="margin-bottom:10px;" on:click={flowBack}>&larr; Back</button>
-          {/if}
-          <div style="display:flex; flex-direction:column; gap:10px;">
-            <div>
-              <div class="panel-title" style="margin-bottom:6px;">Direction</div>
-              <div class="seg">
-                {#each FLOW_DIRS as d}
-                  <button class:active={$flowDirection === d.key} on:click={() => setFlowDirection(d.key)}>{d.label}</button>
-                {/each}
-              </div>
+      <div class="section-body">
+        {#if $flowTrail.length > 0}
+          <button class="pill" style="margin-bottom:10px;" on:click={flowBack}>&larr; Back</button>
+        {/if}
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div>
+            <div class="panel-title" style="margin-bottom:6px;">Direction</div>
+            <div class="seg">
+              {#each FLOW_DIRS as d}
+                <button class:active={$flowDirection === d.key} on:click={() => setFlowDirection(d.key)}>{d.label}</button>
+              {/each}
             </div>
-            <div>
-              <div class="panel-title" style="margin-bottom:6px;">Depth</div>
-              <div class="seg">
-                {#each FLOW_DEPTHS as d}
-                  <button class:active={$flowDepth === d} on:click={() => flowDepth.set(d)}>{d}</button>
-                {/each}
-              </div>
+          </div>
+          <div>
+            <div class="panel-title" style="margin-bottom:6px;">Depth</div>
+            <div class="seg">
+              {#each FLOW_DEPTHS as d}
+                <button class:active={$flowDepth === d} on:click={() => flowDepth.set(d)}>{d}</button>
+              {/each}
             </div>
           </div>
         </div>
-      {/if}
+      </div>
     </div>
 
     {#if flowGroups.length > 1}
   <div class="section section-search">
         <div class="section-head">
-          <button type="button" class="section-toggle" on:click={() => toggleSection('flowsFromRoot')} aria-expanded={$isOpen('flowsFromRoot')}>
-            <span class="section-chev" class:open={$isOpen('flowsFromRoot')}>▸</span>
-            <span class="section-title">Flows from this root</span>
-            <span class="section-meta">{flowGroups.length}</span>
-          </button>
+          <span class="section-title">Flows from this root</span>
+          <span class="section-meta">{flowGroups.length}</span>
         </div>
-        {#if $isOpen('flowsFromRoot')}
-          <div class="section-body">
-            {#each flowGroups as g (g.name)}
-              <button class="legend-item" class:selected={$flowFeatureFilter === g.name} on:click={() => setFlowFeatureFilter(g.name)}>
-                <span class="swatch" style="background:{g.color}"></span>
-                <span>{g.name}</span>
-                <span class="count">{g.count}</span>
-              </button>
-            {/each}
-            {#if $flowFeatureFilter}
-              <button class="pill" style="margin-top:6px;" on:click={() => setFlowFeatureFilter($flowFeatureFilter)}>Show all</button>
-            {/if}
-          </div>
-        {/if}
+        <div class="section-body">
+          {#each flowGroups as g (g.name)}
+            <button class="legend-item" class:selected={$flowFeatureFilter === g.name} on:click={() => setFlowFeatureFilter(g.name)}>
+              <span class="swatch" style="background:{g.color}"></span>
+              <span>{g.name}</span>
+              <span class="count">{g.count}</span>
+            </button>
+          {/each}
+          {#if $flowFeatureFilter}
+            <button class="pill" style="margin-top:6px;" on:click={() => setFlowFeatureFilter($flowFeatureFilter)}>Show all</button>
+          {/if}
+        </div>
       </div>
     {/if}
   {:else if $view === 'packages'}
     <div class="section">
       <div class="section-head">
-        <button type="button" class="section-toggle" on:click={() => toggleSection('isolate')} aria-expanded={$isOpen('isolate')}>
-          <span class="section-chev" class:open={$isOpen('isolate')}>▸</span>
-          <span class="section-title">Isolate dependency chain</span>
-          {#if $isolate}<span class="section-meta" data-tip="active isolation">●</span>{/if}
-        </button>
+        <span class="section-title">Isolate dependency chain</span>
+        {#if $isolate}<span class="section-meta" data-tip="active isolation">●</span>{/if}
       </div>
-      {#if $isOpen('isolate')}
-        <div class="section-body">
-          <div class="isolate-banner" class:active={!!$isolate}>
-            <span>Isolating <b>{$isolate ? $isolate.name : '—'}</b></span>
-            <button class="clear-x" data-tip="Clear isolation" aria-label="Clear isolation" on:click={clearIsolate}>✕</button>
-          </div>
-          <div style="display:flex; flex-direction:column; gap:10px; margin-top:8px;">
-            <div>
-              <div class="panel-title" style="margin-bottom:6px;">Hop depth</div>
-              <div class="seg">
-                {#each HOPS as h}
-                  <button class:active={$hop === h} on:click={() => pickHop(h)}>{h === 99 ? 'All' : h}</button>
-                {/each}
-              </div>
+      <div class="section-body">
+        <div class="isolate-banner" class:active={!!$isolate}>
+          <span>Isolating <b>{$isolate ? $isolate.name : '—'}</b></span>
+          <button class="clear-x" data-tip="Clear isolation" aria-label="Clear isolation" on:click={clearIsolate}>✕</button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:8px;">
+          <div>
+            <div class="panel-title" style="margin-bottom:6px;">Hop depth</div>
+            <div class="seg">
+              {#each HOPS as h}
+                <button class:active={$hop === h} on:click={() => pickHop(h)}>{h === 99 ? 'All' : h}</button>
+              {/each}
             </div>
-            <div>
-              <div class="panel-title" style="margin-bottom:6px;">Direction</div>
-              <div class="seg">
-                {#each DIRS as d}
-                  <button class:active={$direction === d.key} on:click={() => pickDir(d.key)}>{d.label}</button>
-                {/each}
-              </div>
+          </div>
+          <div>
+            <div class="panel-title" style="margin-bottom:6px;">Direction</div>
+            <div class="seg">
+              {#each DIRS as d}
+                <button class:active={$direction === d.key} on:click={() => pickDir(d.key)}>{d.label}</button>
+              {/each}
             </div>
           </div>
         </div>
-      {/if}
+      </div>
     </div>
 
     <div class="section">
       <div class="section-head">
-        <button type="button" class="section-toggle" on:click={() => toggleSection('edgeKinds')} aria-expanded={$isOpen('edgeKinds')}>
-          <span class="section-chev" class:open={$isOpen('edgeKinds')}>▸</span>
-          <span class="section-title">Edge kinds</span>
-        </button>
+        <span class="section-title">Edge kinds</span>
       </div>
-      {#if $isOpen('edgeKinds')}
-        <div class="section-body">
-          <div class="toggle-row">
-            <span><span class="swatch" style="background:var(--imports)"></span>&nbsp; imports</span>
-            <button class="switch" class:on={$showImports} on:click={() => showImports.update(v => !v)} aria-pressed={$showImports}><span class="knob"></span></button>
-          </div>
-          <div class="toggle-row">
-            <span><span class="swatch" style="background:var(--calls)"></span>&nbsp; calls</span>
-            <button class="switch" class:on={$showCalls} on:click={() => showCalls.update(v => !v)} aria-pressed={$showCalls}><span class="knob"></span></button>
-          </div>
+      <div class="section-body">
+        <div class="toggle-row">
+          <span><span class="swatch" style="background:var(--imports)"></span>&nbsp; imports</span>
+          <button class="switch" class:on={$showImports} on:click={() => showImports.update(v => !v)} aria-pressed={$showImports}><span class="knob"></span></button>
         </div>
-      {/if}
+        <div class="toggle-row">
+          <span><span class="swatch" style="background:var(--calls)"></span>&nbsp; calls</span>
+          <button class="switch" class:on={$showCalls} on:click={() => showCalls.update(v => !v)} aria-pressed={$showCalls}><span class="knob"></span></button>
+        </div>
+      </div>
     </div>
   {/if}
 
   <div class="section">
     <div class="section-head">
-      <button type="button" class="section-toggle" on:click={() => toggleSection('packages')} aria-expanded={$isOpen('packages')}>
-        <span class="section-chev" class:open={$isOpen('packages')}>▸</span>
-        <span class="section-title">Packages</span>
-        {#if $packageFilter}<span class="section-meta" data-tip="active filter">●</span>{/if}
-        <span class="section-meta">{$packageFilter ? `${[...$packageFilter].length}/` : ''}{DATA.packages.length}</span>
-      </button>
+      <span class="section-title">Packages</span>
+      {#if $packageFilter}<span class="section-meta" data-tip="active filter">●</span>{/if}
+      <span class="section-meta">{$packageFilter ? `${[...$packageFilter].length}/` : ''}{DATA.packages.length}</span>
       {#if $packageFilter}
         <button class="flow-link packages-clear" on:click={clearPackageFocus}>clear focus</button>
       {/if}
     </div>
-    {#if $isOpen('packages')}
-      <div class="section-body">
-        {#if $packageFilter}
-          <p class="focus-hint">Search &amp; flow diagram scoped to <b>{[...$packageFilter].map(i => shortPkg(DATA.packages[i][0])).join(', ')}</b>. Shift-click 📌 to add another.</p>
-        {/if}
-        {#each DATA.packages as p, i (i)}
-          <div class="pkg-row">
-            <button class="legend-item" on:click={() => openPackage(i)}>
-              <span class="swatch" style="background:{pkgColor(i)}"></span>
-              <span>{shortPkg(p[0])}</span>
-              <span class="count">{p[1]}</span>
-            </button>
-            <button
-              class="pin-btn"
-              class:active={!!$packageFilter && $packageFilter.has(i)}
-              data-tip="Focus on just this package (shift-click to add to focus)"
-              on:click={(e) => togglePackageFocus(i, e.shiftKey)}
-            >📌</button>
-          </div>
-        {/each}
-      </div>
-    {/if}
+    <div class="section-body">
+      {#if $packageFilter}
+        <p class="focus-hint">Search &amp; flow diagram scoped to <b>{[...$packageFilter].map(i => shortPkg(DATA.packages[i][0])).join(', ')}</b>. Shift-click 📌 to add another.</p>
+      {/if}
+      {#each DATA.packages as p, i (i)}
+        <div class="pkg-row">
+          <button class="legend-item" on:click={() => openPackage(i)}>
+            <span class="swatch" style="background:{pkgColor(i)}"></span>
+            <span>{shortPkg(p[0])}</span>
+            <span class="count">{p[1]}</span>
+          </button>
+          <button
+            class="pin-btn"
+            class:active={!!$packageFilter && $packageFilter.has(i)}
+            data-tip="Focus on just this package (shift-click to add to focus)"
+            on:click={(e) => togglePackageFocus(i, e.shiftKey)}
+          >📌</button>
+        </div>
+      {/each}
+    </div>
   </div>
+  {/if}
 </aside>
 
 <style>
-  /* Accordion sections: each one is a `.section` with a header row
-     (`.section-head`) containing a clickable toggle button
-     (`.section-toggle`) plus any inline controls (search mode toggle,
-     "clear focus" button). The toggle is a real <button> so it can be
-     focused + activated by keyboard; sibling controls stay clickable
-     without toggling the section. */
+  aside {
+    position: relative;
+    transition: width 0.15s ease, padding 0.15s ease;
+  }
+  aside.collapsed {
+    width: 34px;
+    min-width: 34px;
+    padding: 16px 6px;
+    align-items: center;
+    overflow: hidden;
+  }
+  .sidebar-toggle {
+    flex: 0 0 auto;
+    align-self: flex-end;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    margin-bottom: 10px;
+  }
+  aside.collapsed .sidebar-toggle { align-self: center; margin-bottom: 0; }
+  .sidebar-toggle:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* Sections: each one is a `.section` with a header row (`.section-head`)
+     holding the title plus any inline controls ("clear focus" button). */
   .section {
     flex: 0 0 auto;        /* keep content size — don't shrink, so when
                               total section height > aside height, the
@@ -483,39 +348,20 @@
     padding-top: 8px;
     margin-top: 4px;
   }
-  /* Search section: GROWS to fill empty space (flex-grow: 1) but does
-     NOT shrink (flex-shrink: 0). This way:
-       - When the aside has spare vertical space, the search section
-         expands to fill it (so the search input is always anchored at
-         the top with the results list growing below).
-       - When the natural total of all sections exceeds the aside's
-         available height, the search section keeps its content size
-         (instead of compressing), the aside overflows, and the scrollbar
-         appears so all sections remain reachable. */
+  /* .section-search: GROWS to fill empty space (flex-grow: 1) but does
+     NOT shrink (flex-shrink: 0), so when the natural total of all sections
+     exceeds the aside's available height, this section keeps its content
+     size (instead of compressing) and the aside scrolls instead. */
   .section-search {
     flex: 1 0 auto;
     display: flex;
     flex-direction: column;
   }
-  /* Inner: section-body fills the search section, search-results fills
-     section-body. min-height: 0 is needed here so the search-results
-     can shrink below its content size and scroll internally — the
-     outer section-search no longer shrinks, but these inner pieces
-     still need to. */
   .section-search .section-body {
     flex: 1 1 auto;
     min-height: 0;
     display: flex;
     flex-direction: column;
-  }
-  .section-search .search-results {
-    flex: 1 1 auto;
-    min-height: 0;
-    margin-top: 6px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
   }
   .section:first-of-type {
     border-top: none;
@@ -528,35 +374,6 @@
     gap: 6px;
     width: 100%;
   }
-  .section-toggle {
-    flex: 1 1 auto;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: none;
-    border: none;
-    padding: 4px 2px;
-    cursor: pointer;
-    color: var(--text);
-    font-family: inherit;
-    text-align: left;
-    border-radius: 4px;
-  }
-  .section-toggle:hover .section-title,
-  .section-toggle:focus-visible .section-title { color: var(--accent); }
-  .section-toggle:hover .section-chev,
-  .section-toggle:focus-visible .section-chev { color: var(--accent); }
-  .section-chev {
-    display: inline-block;
-    color: var(--muted);
-    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
-    font-size: 10px;
-    width: 10px;
-    flex: 0 0 auto;
-    transition: transform 0.15s ease;
-  }
-  .section-chev.open { transform: rotate(90deg); color: var(--accent); }
   .section-title {
     font-size: 11px;
     font-weight: 700;
@@ -576,34 +393,6 @@
   }
   .packages-clear { flex: 0 0 auto; font-size: 10.5px; }
 
-  .search-hit-row {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-  .search-hit-row .search-hit { flex: 1; min-width: 0; }
-  :global(.hit-doc) {
-    font-size: 10.5px;
-    color: var(--muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-top: 1px;
-  }
-  .flow-btn {
-    flex: 0 0 auto;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--accent);
-    background: var(--accent-soft);
-    border: none;
-    border-radius: 6px;
-    padding: 4px 7px;
-    cursor: pointer;
-  }
-  .flow-btn:hover { filter: brightness(1.1); }
   :global(.legend-item.selected) {
     background: var(--accent-soft);
     border-radius: 6px;
@@ -685,23 +474,5 @@
     filter: grayscale(1);
   }
   .pin-btn:hover { opacity: 0.8; }
-  .pin-btn.active { opacity: 1; filter: none; background: var(--accent-soft); }
-  .kind-chips {
-    display: flex; flex-wrap: wrap; gap: 4px;
-    margin-top: 6px;
-  }
-  .kind-chip {
-    background: var(--surface-2);
-    color: var(--muted);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 2px 8px;
-    font-size: 10px;
-    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
-    cursor: pointer;
-    flex-grow: 1;
-  }
-  .kind-chip:hover { color: var(--text); border-color: var(--accent); }
-  .kind-chip.active { background: var(--accent); color: white; border-color: var(--accent); }
-  .kind-chip.clear { color: var(--muted); }
+  .pin-btn.active { opacity: 1; filter: none; }
 </style>

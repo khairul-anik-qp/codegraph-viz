@@ -2,10 +2,53 @@
   // Single-symbol D3 tree view: renders the call graph rooted at one symbol as a zoomable, drillable tree with a ghost trail of navigation history.
   import { onMount, onDestroy } from 'svelte';
   import * as d3 from 'd3';
-  import { DATA, symOutAdj, symInAdj, flowRoot, flowDirection, flowDepth, flowFeatureFilter, packageFilter, flowTrail, tooltipState, diffOverlayOn, changedSymIds, blastRadiusSymIds } from './stores.js';
-  import { flowDrillTo, flowJumpToTrail, openAllFlows } from './actions.js';
+  import { DATA, symOutAdj, symInAdj, flowRoot, flowDirection, flowDepth, flowFeatureFilter, packageFilter, flowTrail, tooltipState, diffOverlayOn, changedSymIds, blastRadiusSymIds, searchQuery, symbolKindFilter } from './stores.js';
+  import { flowDrillTo, flowJumpToTrail, openAllFlows, openFlow } from './actions.js';
   import { buildFlowTree, pkgColor, displayName, featureGroup } from './graph.js';
   import ExportMenu from './ExportMenu.svelte';
+
+  // The search box is local to this screen — reset it on every mount so
+  // re-entering the flow view (e.g. via the nav) doesn't show a stale query
+  // left over from a previous visit.
+  onMount(() => {
+    searchQuery.set('');
+    symbolKindFilter.set(null);
+  });
+
+  // Pre-collect every distinct symbol-kind present in DATA so the filter
+  // chips below show only kinds that actually exist in this codebase.
+  $: availableKinds = (() => {
+    const set = new Set();
+    for (const s of DATA.symbols) set.add(s[1]);
+    return [...set].sort();
+  })();
+
+  // Adds/removes a symbol kind from the active kind filter, clearing the
+  // filter entirely once every kind (or none) is selected.
+  function toggleKind(k) {
+    symbolKindFilter.update(cur => {
+      const next = new Set(cur || []);
+      if (next.has(k)) next.delete(k); else next.add(k);
+      return next.size === 0 || next.size === availableKinds.length ? null : next;
+    });
+  }
+  // Resets the symbol-kind filter so search shows every kind again.
+  function clearKindFilter() { symbolKindFilter.set(null); }
+
+  $: symbolHits = (() => {
+    const q = $searchQuery.trim();
+    if (!q) return [];
+    const out = [];
+    const kinds = $symbolKindFilter;
+    const needle = q.toLowerCase();
+    for (let i = 0; i < DATA.symbols.length && out.length < 20; i++) {
+      const s = DATA.symbols[i];
+      if ($packageFilter && !$packageFilter.has(DATA.files[s[4]][1])) continue;
+      if (kinds && !kinds.has(s[1])) continue;
+      if (s[0] && s[0].toLowerCase().includes(needle)) out.push(i);
+    }
+    return out;
+  })();
 
   let svgEl;
   let gEl;
@@ -274,25 +317,96 @@
   onDestroy(() => tooltipState.set(null));
 </script>
 
-{#if root !== null}
-  <div class="flow-toolbar">
-    <ExportMenu {svgEl} filename={DATA.symbols[root][0]} />
-    <button class="all-flows-btn" on:click={() => openAllFlows(root)} data-tip="Enumerate every path through this symbol (callers + callees)">
-      all paths →
-    </button>
+<div class="flow-view">
+  <div class="flow-rail">
+    <div class="rail-head">
+      <span class="section-title">Search files &amp; functions</span>
+    </div>
+    <div class="rail-body">
+      <input type="text" placeholder="e.g. AddEditOutcomeModal or formatDate" autocomplete="off" bind:value={$searchQuery} />
+      <div class="kind-chips">
+        {#each availableKinds as k (k)}
+          <button
+            class="kind-chip"
+            class:active={$symbolKindFilter && $symbolKindFilter.has(k)}
+            data-tip="Toggle filter: show only symbols of kind '{k}'"
+            on:click={() => toggleKind(k)}
+          >{k}</button>
+        {/each}
+        {#if $symbolKindFilter}
+          <button class="kind-chip clear" on:click={clearKindFilter} data-tip="Clear kind filter" aria-label="Clear kind filter">✕</button>
+        {/if}
+      </div>
+      <div class="search-results">
+        {#each symbolHits as symId (symId)}
+          <div class="search-hit-row">
+            <button class="search-hit" data-tip={DATA.symbols[symId][6] || null} on:click={() => openFlow(symId, 'out')}>
+              <span class="mono" style="color:var(--accent); font-weight:700;">{DATA.symbols[symId][0]}</span>
+              <span style="color:var(--muted);"> · {DATA.symbols[symId][1]} · {displayName(DATA.files[DATA.symbols[symId][4]][0])}</span>
+              {#if DATA.symbols[symId][6]}<div class="hit-doc">{DATA.symbols[symId][6].split('\n')[0]}</div>{/if}
+            </button>
+            <button class="flow-btn" data-tip="Enumerate every path through this symbol (callers + callees)" on:click={() => openAllFlows(symId)}>all</button>
+          </div>
+        {/each}
+      </div>
+    </div>
   </div>
-{:else}
-  <div class="flow-empty">
-    <p>No symbol selected yet.</p>
-    <p class="flow-empty-sub">Search a function in the sidebar and click <b>flow</b>, or click any node in Packages/Files.</p>
+
+  <div class="flow-canvas">
+    {#if root !== null}
+      <div class="flow-toolbar">
+        <ExportMenu {svgEl} filename={DATA.symbols[root][0]} />
+        <button class="all-flows-btn" on:click={() => openAllFlows(root)} data-tip="Enumerate every path through this symbol (callers + callees)">
+          all paths →
+        </button>
+      </div>
+    {:else}
+      <div class="flow-empty">
+        <p>No symbol selected yet.</p>
+        <p class="flow-empty-sub">Search a function on the left, or click any node in Packages/Files.</p>
+      </div>
+    {/if}
+
+    <svg id="flow-svg" bind:this={svgEl}>
+      <g bind:this={gEl}></g>
+      <g bind:this={ghostsEl} class="ghost-layer"></g>
+    </svg>
   </div>
-{/if}
-<svg id="flow-svg" bind:this={svgEl}>
-  <g bind:this={gEl}></g>
-  <g bind:this={ghostsEl} class="ghost-layer"></g>
-</svg>
+</div>
 
 <style>
+  .flow-view {
+    position: absolute;
+    inset: 0;
+    display: flex;
+  }
+  .flow-rail {
+    width: 260px;
+    flex: 0 0 auto;
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .rail-head {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .rail-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .flow-canvas {
+    flex: 1 1 auto;
+    min-width: 0;
+    position: relative;
+  }
   #flow-svg {
     position: absolute;
     inset: 0;
@@ -322,7 +436,6 @@
   }
   .flow-empty p { margin: 0; font-size: 13px; }
   .flow-empty-sub { max-width: 360px; }
-  .flow-empty-sub b { color: var(--text); }
   .all-flows-btn {
     background: var(--surface);
     color: var(--accent);
@@ -337,6 +450,63 @@
     letter-spacing: 0.04em;
   }
   .all-flows-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .rail-body input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .kind-chips {
+    display: flex; flex-wrap: wrap; gap: 4px;
+  }
+  .kind-chip {
+    background: var(--surface-2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace);
+    cursor: pointer;
+    flex-grow: 1;
+  }
+  .kind-chip:hover { color: var(--text); border-color: var(--accent); }
+  .kind-chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .kind-chip.clear { color: var(--muted); }
+  .search-results {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .search-hit-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .search-hit-row .search-hit { flex: 1; min-width: 0; }
+  :global(.hit-doc) {
+    font-size: 10.5px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+  }
+  .flow-btn {
+    flex: 0 0 auto;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: none;
+    border-radius: 6px;
+    padding: 4px 7px;
+    cursor: pointer;
+  }
+  .flow-btn:hover { filter: brightness(1.1); }
   /* Ghost trail: dim navigation-history + sibling strip. Sits above the
      focused subtree so the user keeps spatial context for "where did I
      drill from". Hover bumps opacity so the click target stays legible. */

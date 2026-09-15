@@ -14,9 +14,11 @@ const FAKE_ROWS = {
   edges_call: [{ s: 1, t: 2, ln: 1 }],
   edges_usage: [],
   unresolved_refs: [],
+  project_metadata: [{ k: 'project_name', v: 'fake-project' }],
 };
 
 function fakeSqliteJson(db, sql) {
+  if (sql.includes('project_metadata')) return FAKE_ROWS.project_metadata;
   if (sql.includes('from files')) return FAKE_ROWS.files;
   if (sql.includes('from nodes')) return FAKE_ROWS.nodes;
   if (sql.includes('unresolved_refs')) return FAKE_ROWS.unresolved_refs;
@@ -43,6 +45,9 @@ assert.equal(data.packages.length, 1); // both files under 'src'
 // changedFileIdxs defaults to [] when no gitDiffRef is passed — must not
 // break existing callers that don't know about the diff feature.
 assert.deepEqual(data.changedFileIdxs, []);
+
+// Project metadata (k/v rows) is reshaped into a plain object for the viewer.
+assert.equal(data.projectMetadata.project_name, 'fake-project');
 
 const html = buildHtml(data);
 assert.match(html, /<script id="graph-data-b64"/);

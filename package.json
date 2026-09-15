@@ -38,9 +38,6 @@
   "bugs": {
     "url": "https://github.com/anomalyco/codegraph-viz/issues"
   },
-  "dependencies": {
-    "fflate": "^0.8.3"
-  },
   "pnpm": {
     "onlyBuiltDependencies": [
       "better-sqlite3",

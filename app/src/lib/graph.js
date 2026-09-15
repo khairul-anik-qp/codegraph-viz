@@ -883,34 +883,57 @@ export function findEntryPathsToSymbol(symId, symInAdj, symbols, files, maxPaths
   return results;
 }
 
+// "Documentable" symbol kinds — the kinds that carry a docstring target in
+// practice (properties/enum members are excluded: they're rarely documented
+// individually and would drown out packages that actually need attention).
+// Single definition shared by packageSummaries and any view that mirrors it.
+export const DOCUMENTABLE_KINDS = new Set(['function', 'method', 'component', 'class', 'interface', 'type_alias']);
+
 // Per-package aggregate for the package-summary view. Returns one entry per
-// package with: file count, symbol count, language breakdown (top-3 by LOC),
-// top-3 hubs in this package (by transitive reach), and average complexity
-// across non-test symbols.
-export function packageSummaries(packages, files, symbols, symInAdj, fileSymbolIds) {
+// package with: file/symbol/LOC counts, language breakdown (top-3 by LOC),
+// docstring coverage of exported documentable symbols, entry-point and
+// dead-code counts, top-3 hubs in this package (by transitive reach), the
+// highest-complexity hotspot, and inbound/outbound package dependencies.
+export function packageSummaries(packages, files, symbols, symInAdj, fileSymbolIds, opts = {}) {
+  const pkgOutAdj = opts.pkgOutAdj || new Map();
+  const pkgInAdj = opts.pkgInAdj || new Map();
+  // Dead-code counts grouped by the package each dead symbol lives in.
+  const deadByPkg = new Map();
+  for (const d of (opts.deadCode || [])) {
+    const pkgIdx = files[symbols[d.symId][4]][1];
+    deadByPkg.set(pkgIdx, (deadByPkg.get(pkgIdx) || 0) + 1);
+  }
   const perPkgFiles = new Map();
   for (let i = 0; i < files.length; i++) {
     const pkgIdx = files[i][1];
     if (!perPkgFiles.has(pkgIdx)) perPkgFiles.set(pkgIdx, []);
     perPkgFiles.get(pkgIdx).push(i);
   }
-  const symStats = new Map(); // pkgIdx -> {count, langs: Map, sumComplex, nComplex}
+  const symStats = new Map(); // pkgIdx -> {count, sumComplex, nComplex, docsTotal, docsCovered, entry, hotSymId, hotCx}
+  const emptyStats = () => ({ count: 0, sumComplex: 0, nComplex: 0, docsTotal: 0, docsCovered: 0, entry: 0, hotSymId: -1, hotCx: 0 });
   for (let i = 0; i < symbols.length; i++) {
     const sym = symbols[i];
     const fi = sym[4];
     const f = files[fi];
     const pkgIdx = f[1];
-    if (!symStats.has(pkgIdx)) symStats.set(pkgIdx, { count: 0, sumComplex: 0, nComplex: 0 });
+    if (!symStats.has(pkgIdx)) symStats.set(pkgIdx, emptyStats());
     const s = symStats.get(pkgIdx);
     s.count++;
     const c = complexity(sym[5]);
     s.sumComplex += c;
     s.nComplex++;
+    if (sym[3] && DOCUMENTABLE_KINDS.has(sym[1])) {
+      s.docsTotal++;
+      if (sym[6]) s.docsCovered++;
+    }
+    const inDeg = (symInAdj.get(i) || []).length;
+    if (isEntryPoint(sym, sym[5] || '', inDeg)) s.entry++;
+    if (c > s.hotCx) { s.hotCx = c; s.hotSymId = i; }
   }
   const out = [];
   for (let i = 0; i < packages.length; i++) {
     const fileIdxs = perPkgFiles.get(i) || [];
-    const stats = symStats.get(i) || { count: 0, sumComplex: 0, nComplex: 0 };
+    const stats = symStats.get(i) || emptyStats();
     // Language breakdown by LOC
     const langs = new Map();
     for (const fi of fileIdxs) {
@@ -931,7 +954,24 @@ export function packageSummaries(packages, files, symbols, symInAdj, fileSymbolI
       name: packages[i][0],
       fileCount: fileIdxs.length,
       symbolCount: stats.count,
+      loc: fileIdxs.reduce((n, fi) => n + (files[fi][3] || 0), 0),
       avgComplexity: stats.nComplex > 0 ? stats.sumComplex / stats.nComplex : 0,
+      docsTotal: stats.docsTotal,
+      docsCovered: stats.docsCovered,
+      entryCount: stats.entry,
+      deadCount: deadByPkg.get(i) || 0,
+      // Only surface a hotspot when it's genuinely gnarly — a cx-4 max is noise.
+      hotspot: stats.hotCx >= 6 && stats.hotSymId >= 0 ? {
+        symId: stats.hotSymId,
+        name: symbols[stats.hotSymId][0],
+        kind: symbols[stats.hotSymId][1],
+        complexity: stats.hotCx,
+      } : null,
+      // Outbound dependencies ranked by combined import+call edge weight.
+      deps: (pkgOutAdj.get(i) || [])
+        .map(([t, iw, cw]) => ({ pkgIdx: t, weight: (iw || 0) + (cw || 0) }))
+        .sort((a, b) => b.weight - a.weight),
+      rdepCount: (pkgInAdj.get(i) || []).length,
       languages: [...langs.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3),
       topHubs: candidates.slice(0, 3).map(s => ({
         symId: s,

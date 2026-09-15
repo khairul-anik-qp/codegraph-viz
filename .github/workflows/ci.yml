@@ -1,0 +1,44 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Build singlefile template
+        run: pnpm run build
+
+      - name: Test
+        run: npm test
+
+      # The published tarball ships bin/, lib/, and the prebuilt template in
+      # app/dist/ — this gate fails the build if `files` ever stops covering
+      # one of them (e.g. a stray .gitignore or rename).
+      - name: Verify tarball contents
+        run: |
+          npm pack --dry-run > pack.log 2>&1
+          cat pack.log
+          grep -q 'bin/codegraph-viz.js' pack.log
+          grep -q 'lib/graph.mjs' pack.log
+          grep -q 'app/dist/index.html' pack.log

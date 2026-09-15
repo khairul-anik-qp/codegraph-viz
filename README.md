@@ -72,35 +72,35 @@ codegraph-viz --quiet
 
 ## CI: GitHub Actions
 
-### Option 1: npm package directly
+The generated HTML is a single self-contained file — generate it in CI and upload it as a workflow artifact.
+
+### Option 1: dedicated action (recommended)
 
 ```yaml
-- name: Install sqlite3
-  run: sudo apt-get install -y sqlite3
+- uses: anomalyco/codegraph-viz@v1
+  with:
+    out: codegraph-viz/index.html
+    # diff: main   # optional — highlights files changed since this ref
+```
 
-- name: Install codegraph-viz
-  run: npm install -g codegraph-viz
+The action runs the CLI from its own checkout (action version == tool version, no `npx` drift), ensures `sqlite3` is available, and uploads `out` as an artifact named `codegraph-viz`. Inputs: `cwd`, `db`, `out`, `diff`, `upload`, `artifact-name`. Requires Node ≥ 18 on the runner (add an `actions/setup-node` step if your job doesn't already have one).
 
+### Option 2: npm package directly
+
+```yaml
 - name: Generate viz
-  run: codegraph-viz --out dist/codegraph.html
+  run: npx codegraph-viz --out codegraph-viz/index.html
 
 - name: Upload artifact
   uses: actions/upload-artifact@v4
   with:
     name: codegraph-viz
-    path: dist/codegraph.html
+    path: codegraph-viz/index.html
 ```
 
-### Option 2: dedicated action
+`sqlite3` is preinstalled on GitHub's `ubuntu-latest` and `macos-latest` runners; on Windows runners the dedicated action installs it for you (with `npx`, do it yourself: `choco install sqlite`).
 
-```yaml
-- uses: anomalyco/codegraph-viz-action@v1
-  with:
-    db-path: .codegraph/codegraph.db
-    out: dist/codegraph.html
-```
-
-> **Note**: this action does not index the codebase. Run your CodeGraph indexing step first (it needs a full tree-sitter parse and is much heavier than viz generation).
+> **Note**: neither the action nor the package *indexes* the codebase. Run your CodeGraph indexing step first (it needs a full tree-sitter parse and is much heavier than viz generation).
 
 ## Domain View: grouping by business domain, not folder
 
@@ -130,17 +130,24 @@ The generated `index.html` is fully self-contained — no external requests, no 
 ## Development
 
 ```bash
-# Install + build the Svelte template
-npm install
-npm run build
+# pnpm workspace (app/ and extension/ are members)
+pnpm install
+pnpm run build        # rebuilds app/dist/index.html (the singlefile template)
 
 # Run the CLI from source
 ./bin/codegraph-viz.js
+
+# Tests (plain Node, no DB needed)
+npm test
 ```
+
+The package is fully self-contained at runtime: zero npm dependencies
+(fflate's UMD bundle is vendored under `lib/vendor/`), only the `sqlite3`
+CLI on PATH and Node ≥ 18.
 
 ## Releasing
 
-The repo is wired to publish on tag push via `.github/workflows/publish.yml`. The workflow runs `npm run build` (which calls `npm --prefix app run build` to rebuild the singlefile template) before `npm publish --provenance --access public`, so the published tarball always contains a fresh template.
+Publishing is wired to tag push via `.github/workflows/publish.yml`. On a `v*` tag the workflow installs with pnpm (frozen lockfile), rebuilds `app/dist/index.html`, runs `npm test` (blocking), publishes to npm with provenance, creates the GitHub Release, and moves the floating major tag (`v0`, `v1`, …) so `uses: anomalyco/codegraph-viz@v1` users stay current.
 
 ### One-time setup
 
@@ -164,24 +171,25 @@ gh run watch
 
 The workflow:
 
-1. Checks out the repo, sets up Node 20.
-2. Runs `npm run build` (rebuilds `app/dist/index.html`).
-3. Runs `npm test` (best-effort, continues on error).
-4. Runs `npm publish --provenance --access public` with `NODE_AUTH_TOKEN=$NPM_TOKEN`.
+1. Checks out the repo, sets up pnpm 10 + Node 22.
+2. `pnpm install --frozen-lockfile` → `pnpm run build` → `npm test` (all blocking).
+3. `npm publish --provenance --access public` with `NODE_AUTH_TOKEN=$NPM_TOKEN`.
+4. Creates the GitHub Release (auto-generated notes) and force-moves the `v<major>` tag to the new release.
 
 If provenance is enabled, verify the package on npmjs.com — the build sigil should link back to the GitHub Actions run.
 
 ### First publish
 
-If `codegraph-viz` is already taken on npm, rename it in `package.json` and update the action's `npm install -g codegraph-viz` step in `action/action.yml` accordingly.
+If `codegraph-viz` is already taken on npm, rename it in `package.json` and update the action example in this README accordingly.
 
 ### Dry run before tagging
 
 ```bash
-# Packs locally without publishing — verifies the tarball contents
+pnpm run build
 npm pack
 tar -tzf codegraph-viz-*.tgz
-# Should list: bin/, app/dist/index.html, README.md, LICENSE, package.json
+# Should list: bin/, lib/ (incl. lib/vendor/fflate-umd.js),
+# app/dist/index.html, README.md, LICENSE, package.json
 ```
 
 ## License

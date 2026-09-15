@@ -100,7 +100,26 @@ header {
 }
 header h1 { font-size: 15px; font-weight: 800; letter-spacing: 0.01em; margin: 0; }
 header h1 span { color: var(--muted); font-weight: 600; }
-.breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); min-width: 0; overflow: hidden; white-space: nowrap; }
+.breadcrumb {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.breadcrumb::-webkit-scrollbar {
+  display: none;
+}
+
+/* Chrome/Safari */
 .breadcrumb .crumb { padding: 3px 9px; border-radius: 6px; cursor: pointer; font-family: var(--vscode-editor-font-family, 'JetBrains Mono', monospace); font-size: 12px; background: none; border: none; color: inherit; }
 .breadcrumb .crumb.current { color: var(--text); background: var(--surface-2); cursor: default; }
 .breadcrumb .crumb:not(.current):not(.ellipsis):hover { background: var(--surface-2); color: var(--text); }

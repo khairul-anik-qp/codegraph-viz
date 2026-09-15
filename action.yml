@@ -1,0 +1,64 @@
+name: 'codegraph-viz'
+description: 'Generate an interactive HTML viewer for a CodeGraph-indexed codebase and upload it as a workflow artifact'
+author: 'anomalyco'
+branding:
+  icon: 'git-branch'
+  color: 'purple'
+
+# Composite action: runs the CLI from this repo checkout, so the action's
+# version always matches the tool version (no npx round-trip, no version
+# drift between the action tag and the npm package).
+inputs:
+  cwd:
+    description: 'Project root to search for .codegraph/ (walks up from here)'
+    required: false
+    default: ${{ github.workspace }}
+  db:
+    description: 'Path to codegraph.db (default: <cwd>/.codegraph/codegraph.db)'
+    required: false
+    default: ''
+  out:
+    description: 'Output HTML file path'
+    required: false
+    default: 'codegraph-viz/index.html'
+  diff:
+    description: 'Git ref to diff against (e.g. main, HEAD~5) for the changed-files impact overlay'
+    required: false
+    default: ''
+  upload:
+    description: "Upload the generated HTML as a workflow artifact ('true'/'false')"
+    required: false
+    default: 'true'
+  artifact-name:
+    description: 'Name for the uploaded artifact'
+    required: false
+    default: 'codegraph-viz'
+
+runs:
+  using: 'composite'
+  steps:
+    # The repo's pnpm workspace installs extension deps too; the action only
+    # needs Node >= 18 and the sqlite3 CLI — no node_modules required.
+
+    # windows runners don't ship sqlite3; ubuntu/macos images include it.
+    - name: Install sqlite3 (Windows only)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: choco install sqlite --yes --no-progress
+
+    - name: Generate viewer
+      shell: bash
+      run: |
+        node "${{ github.action_path }}/bin/codegraph-viz.js" \
+          --cwd "${{ inputs.cwd }}" \
+          --out "${{ inputs.out }}" \
+          ${{ inputs.db != '' && format('--db "{0}"', inputs.db) || '' }} \
+          ${{ inputs.diff != '' && format('--diff "{0}"', inputs.diff) || '' }}
+
+    - name: Upload artifact
+      if: inputs.upload == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.out }}
+        if-no-files-found: error

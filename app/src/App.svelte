@@ -31,12 +31,13 @@
   import TitleTip from './lib/TitleTip.svelte';
   import PathFinderModal from './lib/PathFinderModal.svelte';
   import KeyboardShortcutsHelp from './lib/KeyboardShortcutsHelp.svelte';
+  import ThemeFab from './lib/ThemeFab.svelte';
   import { applyHashState, syncHash } from './lib/hashState.js';
 
   $: hint = $view === 'packages'
     ? 'Click a bubble to open a package. Click again to <b>isolate</b> its dependency chain.'
     : $view === 'files'
-    ? 'Click a file to open its dominant call flow &middot; ⓘ to inspect it in the panel &middot; use search above to filter.'
+    ? 'Click a file to open its dominant call flow &middot; ⓘ to inspect it in the panel &middot; use the filter box to narrow this list.'
     : $view === 'allFlows'
     ? 'Every path that flows through the searched symbol &middot; click any chip to jump to that function.'
     : $view === 'deadCode'
@@ -58,7 +59,7 @@
     : $view === 'domains'
     ? 'Business/feature domains grouped by folder depth &middot; click an entry point to open its full flow, or any step in its preview chain to inspect that symbol.'
     : $view === 'flow' && $flowRoot === null
-    ? 'Search a function above (or click a node in Packages/Files) to trace its call flow.'
+    ? 'Search a function in the flow screen (or click a node in Packages/Files) to trace its call flow.'
     : 'Click a node to make it the new root &middot; scroll to zoom &middot; drag to pan.';
 
   // Whether a keydown event's target is a text input the user is typing into,
@@ -198,4 +199,5 @@
   <TitleTip />
   <PathFinderModal />
   <KeyboardShortcutsHelp />
+  <ThemeFab />
 </div>

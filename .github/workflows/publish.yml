@@ -1,36 +1,57 @@
 name: publish
 
-# Publishes the codegraph-viz npm package on tag push (vX.Y.Z).
-# The package's `prepublishOnly` script builds app/dist before `npm publish`
-# runs, so the published tarball contains the freshly-built singlefile HTML
-# template. To cut a release: git tag v0.1.0 && git push --tags.
+# Publishes the npm package when a v* tag is pushed (npm version + git push
+# --follow-tags). Also creates the GitHub Release and moves the floating
+# major tag (v0, v1, …) so `uses: anomalyco/codegraph-viz@v1` stays current.
 on:
   push:
-    tags:
-      - 'v*'
+    tags: ['v*']
+
+permissions:
+  contents: write  # create the GitHub Release + push the moving major tag
+  id-token: write  # npm provenance statements
 
 jobs:
-  build-and-publish:
+  publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: 22
+          registry-url: https://registry.npmjs.org
 
-      - name: Install app deps + build singlefile template
-        run: npm run build
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
 
-      - name: Verify build artifact
-        run: |
-          test -f app/dist/index.html || (echo "build failed: app/dist/index.html missing" && exit 1)
-          echo "template size: $(wc -c < app/dist/index.html) bytes"
+      - name: Build singlefile template
+        run: pnpm run build
 
-      - run: npm test
-        continue-on-error: true   # smoke test is best-effort until test/ is added
+      - name: Test
+        run: npm test
 
-      - run: npm publish --provenance --access public
+      - name: Publish to npm
+        run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      # Keeps `v<major>` pointing at the newest release of that major so the
+      # action's floating-tag users get fixes without changing their workflow.
+      - name: Update major version tag
+        run: |
+          major="${GITHUB_REF_NAME#v}"
+          major="${major%%.*}"
+          git tag -f "v${major}" "$GITHUB_REF_NAME"
+          git push -f origin "v${major}"
+        env:
+          GH_TOKEN: ${{ github.token }}
