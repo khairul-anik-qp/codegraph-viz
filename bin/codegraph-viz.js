@@ -132,7 +132,11 @@ if (opts.db) {
   codegraphDir = findCodegraphDir(opts.cwd);
   if (!codegraphDir) {
     console.error(`Error: no .codegraph/codegraph.db found in or above "${projectRoot}".`);
-    console.error('Either run from inside an indexed project or pass --db <path>.');
+    console.error('This project hasn\'t been indexed by CodeGraph yet. Install it and index the repo:');
+    console.error('  curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh');
+    console.error('  # or: npm install -g @colbymchenry/codegraph');
+    console.error('  codegraph init');
+    console.error('Or pass --db <path> to point at an existing codegraph.db.');
     process.exit(1);
   }
   db = path.join(codegraphDir, 'codegraph.db');
